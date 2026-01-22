@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a1a">
+    <title>Light Cycle - Tron Puzzle Game</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a1a' width='100' height='100'/><path d='M20 50 L50 20 L80 50 L50 80 Z' fill='none' stroke='%2300ffff' stroke-width='4'/></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main Menu -->
+        <div id="main-menu" class="screen active">
+            <div class="menu-content">
+                <h1 class="game-title">
+                    <span class="title-light">LIGHT</span>
+                    <span class="title-cycle">CYCLE</span>
+                </h1>
+                <p class="tagline">Guide the light. Solve the puzzle.</p>
+                <div class="menu-buttons">
+                    <button id="play-btn" class="neon-button primary">PLAY</button>
+                    <button id="levels-btn" class="neon-button">LEVELS</button>
+                    <button id="how-to-play-btn" class="neon-button">HOW TO PLAY</button>
+                    <button id="settings-btn" class="neon-button">SETTINGS</button>
+                </div>
+            </div>
+            <div class="grid-background"></div>
+        </div>
+
+        <!-- Level Select -->
+        <div id="level-select" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" data-target="main-menu">←</button>
+                <h2>SELECT LEVEL</h2>
+            </div>
+            <div id="level-grid" class="level-grid"></div>
+        </div>
+
+        <!-- How To Play -->
+        <div id="how-to-play" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" data-target="main-menu">←</button>
+                <h2>HOW TO PLAY</h2>
+            </div>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <div class="tutorial-icon">🔲</div>
+                    <h3>Draw Paths</h3>
+                    <p>Click on grid cells to draw paths from outlets to stations. Each click adds a segment to your path.</p>
+                </div>
+                <div class="tutorial-step">
+                    <div class="tutorial-icon">🎨</div>
+                    <h3>Match Colors</h3>
+                    <p>Guide light cycles from colored outlets to matching stations. Colors must match!</p>
+                </div>
+                <div class="tutorial-step">
+                    <div class="tutorial-icon">🔀</div>
+                    <h3>Mix Colors</h3>
+                    <p>When cycles merge, their colors combine: Red + Blue = Purple, Red + Yellow = Orange, etc.</p>
+                </div>
+                <div class="tutorial-step">
+                    <div class="tutorial-icon">⚡</div>
+                    <h3>Special Tiles</h3>
+                    <p>Use splitters to branch paths, and color changers to transform cycle colors.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div id="settings" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" data-target="main-menu">←</button>
+                <h2>SETTINGS</h2>
+            </div>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <span>Sound Effects</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Haptic Feedback</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="haptic-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Show Grid Numbers</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="grid-numbers-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <button id="reset-progress-btn" class="neon-button danger">RESET PROGRESS</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <button id="game-back-btn" class="back-btn">←</button>
+                <div class="level-info">
+                    <span id="current-level-name">Level 1</span>
+                </div>
+                <button id="reset-level-btn" class="icon-btn">↻</button>
+            </div>
+            <div id="game-area">
+                <canvas id="game-canvas"></canvas>
+            </div>
+            <div class="game-controls">
+                <button id="undo-btn" class="control-btn">UNDO</button>
+                <button id="run-btn" class="control-btn primary">RUN</button>
+                <button id="clear-btn" class="control-btn">CLEAR</button>
+            </div>
+            <div id="level-message" class="level-message"></div>
+        </div>
+
+        <!-- Level Complete Modal -->
+        <div id="level-complete-modal" class="modal">
+            <div class="modal-content celebration">
+                <h2>LEVEL COMPLETE!</h2>
+                <div class="stars" id="stars-container"></div>
+                <p id="complete-message">Perfect routing!</p>
+                <div class="modal-buttons">
+                    <button id="replay-btn" class="neon-button">REPLAY</button>
+                    <button id="next-level-btn" class="neon-button primary">NEXT LEVEL</button>
+                </div>
+            </div>
+            <canvas id="confetti-canvas"></canvas>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
