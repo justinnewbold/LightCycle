@@ -1,0 +1,19 @@
+{
+  "name": "lightcycle",
+  "version": "1.0.0",
+  "description": "Light Cycle - A Tron-themed puzzle game where players draw paths to guide neon light cycles",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve ."
+  },
+  "keywords": [
+    "game",
+    "puzzle",
+    "tron",
+    "light-cycle",
+    "path-drawing"
+  ],
+  "author": "Justin Newbold",
+  "license": "MIT"
+}
