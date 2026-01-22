@@ -572,3 +572,24 @@ body {
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
+/* Level name in tiles */
+.level-tile .level-name {
+    font-size: 0.55rem;
+    color: rgba(0, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+}
+
+.level-tile.completed .level-name {
+    color: rgba(0, 255, 102, 0.7);
+}
+
+.level-tile.locked .level-name {
+    color: rgba(100, 100, 100, 0.5);
+}
