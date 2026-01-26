@@ -28,7 +28,7 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ---
 
-### 2. [ ] Multi-Train Outlets
+### 2. [x] Multi-Train Outlets
 **Description:** Support multiple trains (2-9) spawning from a single outlet with timed releases.
 
 **Details:**
