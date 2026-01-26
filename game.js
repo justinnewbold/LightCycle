@@ -47,6 +47,13 @@ class LightCycleGame {
         this.settings = this.loadSettings();
         this.progress = this.loadProgress();
         
+        // Dev mode: enable via URL param ?dev=1 or Shift+D keyboard shortcut
+        if (new URLSearchParams(window.location.search).get('dev') === '1') {
+            this.settings.devMode = true;
+            this.saveSettings();
+            console.log('🔓 Dev mode enabled via URL - all levels unlocked');
+        }
+        
         this.gridSize = 7;
         this.cellSize = 50;
         
@@ -247,7 +254,8 @@ class LightCycleGame {
     // ==================== SETTINGS & PROGRESS ====================
     loadSettings() {
         const saved = localStorage.getItem('lightcycle_settings');
-        return saved ? JSON.parse(saved) : { sound: true, haptic: true, gridNumbers: false, swipeMode: true, showHints: true };
+        const defaults = { sound: true, haptic: true, gridNumbers: false, swipeMode: true, showHints: true, devMode: false };
+        return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
     
     saveSettings() { localStorage.setItem('lightcycle_settings', JSON.stringify(this.settings)); }
@@ -347,6 +355,17 @@ class LightCycleGame {
                 this.saveProgress(); this.renderLevelSelect(); this.playSound('click');
                 this.showToast('Progress reset');
             });
+        });
+        
+        // Dev mode keyboard shortcut: Shift+D to toggle
+        document.addEventListener('keydown', (e) => {
+            if (e.shiftKey && e.key === 'D') {
+                this.settings.devMode = !this.settings.devMode;
+                this.saveSettings();
+                this.showToast(this.settings.devMode ? '🔓 Dev mode ON - all levels unlocked' : '🔒 Dev mode OFF');
+                this.renderLevelSelect();
+                this.hapticFeedback('medium');
+            }
         });
         
         // Modal buttons
@@ -1030,7 +1049,7 @@ class LightCycleGame {
             const tile = document.createElement('div');
             tile.className = 'level-tile';
             const isCompleted = this.progress.completedLevels.includes(index);
-            const isUnlocked = index === 0 || this.progress.completedLevels.includes(index - 1);
+            const isUnlocked = this.settings.devMode || index === 0 || this.progress.completedLevels.includes(index - 1);
             if (isCompleted) tile.classList.add('completed');
             if (!isUnlocked) tile.classList.add('locked');
             
