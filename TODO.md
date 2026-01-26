@@ -10,7 +10,7 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ## Priority 1: Core Mechanics
 
-### 1. [ ] Switchable Junctions
+### 1. [x] Switchable Junctions
 **Description:** Allow players to toggle track direction at intersections by double-tap/click.
 
 **Details:**
