@@ -1036,6 +1036,11 @@ class LightCycleGame {
             targetScreen.classList.add('active');
             targetScreen.style.animation = transition === 'slideRight' ? 'slideInLeft 0.3s ease forwards' : 'slideInRight 0.3s ease forwards';
             setTimeout(() => targetScreen.style.animation = '', 300);
+            
+            // Resize canvas after game screen becomes visible
+            if (screenId === 'game-screen') {
+                setTimeout(() => this.resizeCanvas(), 100);
+            }
         }, 50);
         
         if (screenId === 'level-select') this.renderLevelSelect();
@@ -1117,13 +1122,20 @@ class LightCycleGame {
     
     resizeCanvas() {
         const container = document.getElementById('game-area');
+        // Ensure container has dimensions (may not during screen transitions)
+        if (!container.clientWidth || !container.clientHeight) {
+            // Retry after a short delay
+            setTimeout(() => this.resizeCanvas(), 50);
+            return;
+        }
         const maxSize = Math.min(container.clientWidth - 20, container.clientHeight - 20);
-        this.cellSize = Math.floor(maxSize / this.gridSize);
+        this.cellSize = Math.max(20, Math.floor(maxSize / this.gridSize)); // Minimum cell size of 20
         const canvasSize = this.cellSize * this.gridSize;
         this.canvas.width = canvasSize;
         this.canvas.height = canvasSize;
         this.canvas.style.width = canvasSize + 'px';
         this.canvas.style.height = canvasSize + 'px';
+        console.log(`Canvas resized: ${canvasSize}x${canvasSize}, cellSize: ${this.cellSize}`);
     }
     
     getGridPosition(clientX, clientY) {
