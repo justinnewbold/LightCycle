@@ -41,6 +41,13 @@ class LightCycleGame {
         // Toast notifications
         this.toasts = [];
         
+        // Switchable junctions state
+        // Key: "x,y", Value: { paths: [{outletId, entryDir, exitDir}], activeIndex: 0 }
+        this.junctions = {};
+        this.lastTapTime = 0;
+        this.lastTapPos = null;
+        this.doubleTapThreshold = 300; // ms
+        
         // Screen transition state
         this.screenTransition = null;
         
@@ -177,7 +184,23 @@ class LightCycleGame {
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'cyan' }, { id: 'o3', x: 0, y: 7, color: 'yellow' }],
               stations: [{ id: 's1', x: 7, y: 0, color: 'orange' }, { id: 's2', x: 7, y: 3, color: 'white' }, { id: 's3', x: 7, y: 6, color: 'green' }],
               obstacles: [{ x: 2, y: 2 }, { x: 2, y: 5 }, { x: 4, y: 1 }, { x: 4, y: 4 }, { x: 4, y: 6 }, { x: 6, y: 2 }, { x: 6, y: 5 }],
-              splitters: [], colorChangers: [] }
+              splitters: [], colorChangers: [] },
+            // NEW: Junction levels
+            { id: 16, name: "First Junction", description: "Double-tap where paths cross to toggle priority", gridSize: 6,
+              par: 12, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }, { id: 'o2', x: 2, y: 0, color: 'magenta' }],
+              stations: [{ id: 's1', x: 5, y: 2, color: 'cyan' }, { id: 's2', x: 2, y: 5, color: 'magenta' }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 17, name: "Junction Master", description: "Control multiple crossings", gridSize: 7,
+              par: 18, undoBonus: 3,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'blue' }, { id: 'o3', x: 0, y: 5, color: 'yellow' }],
+              stations: [{ id: 's1', x: 6, y: 5, color: 'red' }, { id: 's2', x: 6, y: 3, color: 'blue' }, { id: 's3', x: 6, y: 1, color: 'yellow' }],
+              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
+            { id: 18, name: "Crossing Colors", description: "Cross paths to mix or keep separate", gridSize: 7,
+              par: 16, undoBonus: 3,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'blue' }],
+              stations: [{ id: 's1', x: 6, y: 3, color: 'purple' }, { id: 's2', x: 3, y: 6, color: 'red' }],
+              obstacles: [], splitters: [], colorChangers: [] }
         ];
     }
     
@@ -1113,6 +1136,23 @@ class LightCycleGame {
         const level = this.levels[this.currentLevel];
         if (this.isObstacle(pos.x, pos.y)) return;
         
+        // Check for double-tap to toggle junction
+        const now = Date.now();
+        const key = `${pos.x},${pos.y}`;
+        if (this.lastTapPos && this.lastTapPos.x === pos.x && this.lastTapPos.y === pos.y) {
+            if (now - this.lastTapTime < this.doubleTapThreshold) {
+                // Double-tap detected!
+                if (this.junctions[key] && this.junctions[key].paths.length > 1) {
+                    this.toggleJunction(pos.x, pos.y);
+                    this.lastTapTime = 0;
+                    this.lastTapPos = null;
+                    return;
+                }
+            }
+        }
+        this.lastTapTime = now;
+        this.lastTapPos = { x: pos.x, y: pos.y };
+        
         const outlet = level.outlets.find(o => o.x === pos.x && o.y === pos.y);
         if (outlet) {
             this.saveState();
@@ -1163,9 +1203,16 @@ class LightCycleGame {
     }
     
     addToPath(pos) {
+        // Get direction entering this cell
+        const lastPos = this.currentPath[this.currentPath.length - 1];
+        const entryDir = this.getDirection(lastPos, pos);
+        
         this.currentPath.push({ x: pos.x, y: pos.y });
         this.playSound('path'); this.hapticFeedback('selection');
         this.spawnTrailParticles(pos.x, pos.y, this.currentOutlet.color);
+        
+        // Update junction tracking when path crosses another path
+        this.updateJunctionTracking(pos.x, pos.y);
         
         const level = this.levels[this.currentLevel];
         const station = level.stations.find(s => s.x === pos.x && s.y === pos.y);
@@ -1176,7 +1223,126 @@ class LightCycleGame {
         }
     }
     
+    // Get direction from pos1 to pos2
+    getDirection(pos1, pos2) {
+        if (pos2.x > pos1.x) return 'right';
+        if (pos2.x < pos1.x) return 'left';
+        if (pos2.y > pos1.y) return 'down';
+        if (pos2.y < pos1.y) return 'up';
+        return null;
+    }
+    
+    // Get opposite direction
+    getOppositeDirection(dir) {
+        const opposites = { up: 'down', down: 'up', left: 'right', right: 'left' };
+        return opposites[dir];
+    }
+    
+    // Update junction tracking when a path goes through a cell
+    updateJunctionTracking(x, y) {
+        const key = `${x},${y}`;
+        
+        // Find all paths that pass through this cell
+        const pathsAtCell = [];
+        for (const outletId in this.paths) {
+            const path = this.paths[outletId];
+            for (let i = 0; i < path.length; i++) {
+                if (path[i].x === x && path[i].y === y) {
+                    // Get entry and exit directions
+                    let entryDir = null, exitDir = null;
+                    if (i > 0) {
+                        entryDir = this.getDirection(path[i - 1], path[i]);
+                    }
+                    if (i < path.length - 1) {
+                        exitDir = this.getDirection(path[i], path[i + 1]);
+                    }
+                    pathsAtCell.push({ outletId, index: i, entryDir, exitDir });
+                }
+            }
+        }
+        
+        // If multiple paths pass through this cell, it's a junction
+        if (pathsAtCell.length > 1) {
+            if (!this.junctions[key]) {
+                this.junctions[key] = { paths: pathsAtCell, activeConfig: 0 };
+                this.showToast('Junction created! Double-tap to toggle', 1500);
+            } else {
+                this.junctions[key].paths = pathsAtCell;
+            }
+        } else if (pathsAtCell.length <= 1 && this.junctions[key]) {
+            // Remove junction if no longer has multiple paths
+            delete this.junctions[key];
+        }
+    }
+    
+    // Recalculate all junctions based on current paths
+    recalculateJunctions() {
+        const newJunctions = {};
+        const cellPaths = {}; // Track which paths go through each cell
+        
+        for (const outletId in this.paths) {
+            const path = this.paths[outletId];
+            for (let i = 0; i < path.length; i++) {
+                const key = `${path[i].x},${path[i].y}`;
+                if (!cellPaths[key]) cellPaths[key] = [];
+                
+                let entryDir = null, exitDir = null;
+                if (i > 0) entryDir = this.getDirection(path[i - 1], path[i]);
+                if (i < path.length - 1) exitDir = this.getDirection(path[i], path[i + 1]);
+                
+                cellPaths[key].push({ outletId, index: i, entryDir, exitDir });
+            }
+        }
+        
+        // Create junctions for cells with multiple paths
+        for (const key in cellPaths) {
+            if (cellPaths[key].length > 1) {
+                // Preserve existing activeConfig if junction existed before
+                const prevConfig = this.junctions[key] ? this.junctions[key].activeConfig : 0;
+                newJunctions[key] = {
+                    paths: cellPaths[key],
+                    activeConfig: prevConfig % this.getJunctionConfigs(cellPaths[key]).length
+                };
+            }
+        }
+        
+        this.junctions = newJunctions;
+    }
+    
+    // Get possible configurations for a junction
+    getJunctionConfigs(paths) {
+        // Each configuration specifies which path has priority (goes straight)
+        // For now, we cycle through which outlet's path gets priority
+        const configs = [];
+        const uniqueOutlets = [...new Set(paths.map(p => p.outletId))];
+        uniqueOutlets.forEach((outletId, idx) => {
+            configs.push({ priorityOutlet: outletId, index: idx });
+        });
+        return configs.length > 0 ? configs : [{ priorityOutlet: null, index: 0 }];
+    }
+    
+    // Toggle junction configuration
+    toggleJunction(x, y) {
+        const key = `${x},${y}`;
+        if (!this.junctions[key]) return;
+        
+        const junction = this.junctions[key];
+        const configs = this.getJunctionConfigs(junction.paths);
+        junction.activeConfig = (junction.activeConfig + 1) % configs.length;
+        
+        this.playSound('click');
+        this.hapticFeedback('medium');
+        
+        const config = configs[junction.activeConfig];
+        const level = this.levels[this.currentLevel];
+        const outlet = level.outlets.find(o => o.id === config.priorityOutlet);
+        const colorName = outlet ? outlet.color : 'current';
+        this.showToast(`Junction: ${colorName} has priority`, 1500);
+    }
+    
     finishCurrentPath() {
+        // Recalculate junctions after path is complete
+        this.recalculateJunctions();
         this.currentOutlet = null;
         this.currentPath = null;
     }
@@ -1194,7 +1360,8 @@ class LightCycleGame {
         const state = {
             paths: JSON.parse(JSON.stringify(this.paths)),
             currentOutlet: this.currentOutlet ? { ...this.currentOutlet } : null,
-            currentPath: this.currentPath ? [...this.currentPath] : null
+            currentPath: this.currentPath ? [...this.currentPath] : null,
+            junctions: JSON.parse(JSON.stringify(this.junctions))
         };
         this.undoStack.push(state);
         if (this.undoStack.length > this.maxUndoSteps) {
@@ -1212,6 +1379,7 @@ class LightCycleGame {
         this.paths = state.paths;
         this.currentOutlet = state.currentOutlet;
         this.currentPath = state.currentPath;
+        this.junctions = state.junctions || {};
         
         if (this.currentOutlet && this.paths[this.currentOutlet.id]) {
             this.currentPath = this.paths[this.currentOutlet.id];
@@ -1243,6 +1411,7 @@ class LightCycleGame {
         this.currentPath = null;
         this.currentOutlet = null;
         this.trailParticles = [];
+        this.junctions = {};
         this.hapticFeedback('medium');
     }
     
@@ -1346,6 +1515,9 @@ class LightCycleGame {
             return;
         }
         
+        // Recalculate junctions before running
+        this.recalculateJunctions();
+        
         this.isRunning = true;
         this.cycles = [];
         
@@ -1353,6 +1525,7 @@ class LightCycleGame {
             const path = this.paths[outlet.id];
             if (path && path.length > 1) {
                 this.cycles.push({
+                    outletId: outlet.id, // Track which outlet this cycle is from
                     color: outlet.color, path: [...path], progress: 0,
                     active: true, merged: false, trail: [], success: false
                 });
@@ -1426,10 +1599,33 @@ class LightCycleGame {
                 const c1 = this.cycles[i], c2 = this.cycles[j];
                 if (!c1.active || !c2.active || c1.merged || c2.merged) continue;
                 
-                const p1 = c1.path[Math.floor(c1.progress)];
-                const p2 = c2.path[Math.floor(c2.progress)];
+                const idx1 = Math.floor(c1.progress);
+                const idx2 = Math.floor(c2.progress);
+                const p1 = c1.path[idx1];
+                const p2 = c2.path[idx2];
                 
                 if (p1 && p2 && p1.x === p2.x && p1.y === p2.y) {
+                    const key = `${p1.x},${p1.y}`;
+                    const junction = this.junctions[key];
+                    
+                    // Check if this is a junction with priority settings
+                    if (junction && junction.paths.length > 1) {
+                        const configs = this.getJunctionConfigs(junction.paths);
+                        const activeConfig = configs[junction.activeConfig];
+                        
+                        // Check if cycles are crossing (different directions) vs merging (same direction)
+                        const dir1 = idx1 < c1.path.length - 1 ? this.getDirection(p1, c1.path[idx1 + 1]) : null;
+                        const dir2 = idx2 < c2.path.length - 1 ? this.getDirection(p2, c2.path[idx2 + 1]) : null;
+                        
+                        // If cycles are going perpendicular directions, they're crossing - check priority
+                        if (dir1 && dir2 && !this.areSameAxis(dir1, dir2)) {
+                            // Priority outlet passes through, other waits (in this simple impl, we just let both pass)
+                            // For now, crossing paths don't merge - they pass through each other
+                            continue;
+                        }
+                    }
+                    
+                    // Same location, merge the colors
                     const mixKey = c1.color + '+' + c2.color;
                     const newColor = this.colorMixing[mixKey] || c1.color;
                     c1.color = newColor;
@@ -1439,6 +1635,14 @@ class LightCycleGame {
                 }
             }
         }
+    }
+    
+    // Check if two directions are on the same axis
+    areSameAxis(dir1, dir2) {
+        const horizontal = ['left', 'right'];
+        const vertical = ['up', 'down'];
+        return (horizontal.includes(dir1) && horizontal.includes(dir2)) ||
+               (vertical.includes(dir1) && vertical.includes(dir2));
     }
     
     finishSimulation(failed) {
@@ -1711,6 +1915,7 @@ class LightCycleGame {
         this.trailParticles = [];
         this.undoStack = [];
         this.undoCount = 0;
+        this.junctions = {}; // Reset junctions
         
         // Reset timer
         this.stopTimer();
@@ -1748,6 +1953,7 @@ class LightCycleGame {
         this.trailParticles = [];
         this.undoStack = [];
         this.undoCount = 0; // Reset undo counter
+        this.junctions = {}; // Reset junctions
         this.stopSimulation();
         document.getElementById('level-message').textContent = this.levels[this.currentLevel].description;
     }
@@ -2005,6 +2211,9 @@ class LightCycleGame {
         // Draw paths
         this.drawPaths();
         
+        // Draw junctions (after paths so they appear on top)
+        this.drawJunctions();
+        
         // Draw path preview
         if (this.currentPath && this.currentOutlet && this.hoverCell && !this.isRunning) {
             this.drawPathPreview();
@@ -2197,6 +2406,73 @@ class LightCycleGame {
                         ctx.fillText(i.toString(), p.x * this.cellSize + this.cellSize / 2, p.y * this.cellSize + this.cellSize / 2 - 15);
                     }
                 });
+            }
+        }
+    }
+    
+    drawJunctions() {
+        const ctx = this.ctx;
+        const level = this.levels[this.currentLevel];
+        const pulse = Math.sin(this.pulsePhase * 3) * 0.3 + 0.7;
+        
+        for (const key in this.junctions) {
+            const junction = this.junctions[key];
+            if (junction.paths.length < 2) continue;
+            
+            const [x, y] = key.split(',').map(Number);
+            const cx = x * this.cellSize + this.cellSize / 2;
+            const cy = y * this.cellSize + this.cellSize / 2;
+            const size = this.cellSize * 0.15;
+            
+            // Get priority outlet for this junction
+            const configs = this.getJunctionConfigs(junction.paths);
+            const activeConfig = configs[junction.activeConfig];
+            const priorityOutlet = level.outlets.find(o => o.id === activeConfig.priorityOutlet);
+            const priorityColor = priorityOutlet ? this.colors[priorityOutlet.color] : '#ffffff';
+            
+            // Draw junction indicator (diamond shape)
+            ctx.save();
+            ctx.translate(cx, cy);
+            
+            // Outer glow
+            ctx.shadowColor = priorityColor;
+            ctx.shadowBlur = 10 * pulse;
+            
+            // Diamond background
+            ctx.fillStyle = '#0a0a1a';
+            ctx.strokeStyle = priorityColor;
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 1.5);
+            ctx.lineTo(size * 1.5, 0);
+            ctx.lineTo(0, size * 1.5);
+            ctx.lineTo(-size * 1.5, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Inner rotating indicator showing active direction
+            ctx.fillStyle = priorityColor;
+            ctx.globalAlpha = pulse;
+            
+            // Draw small arrow or dot showing priority
+            const arrowSize = size * 0.6;
+            ctx.beginPath();
+            ctx.arc(0, 0, arrowSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            ctx.restore();
+            
+            // Show "tap to toggle" hint on hover
+            if (this.hoverCell && this.hoverCell.x === x && this.hoverCell.y === y && !this.isRunning) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.font = `bold ${this.cellSize * 0.12}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('2×tap', cx, cy + this.cellSize * 0.35);
             }
         }
     }
