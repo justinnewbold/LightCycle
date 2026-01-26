@@ -73,12 +73,21 @@ class LightCycleGame {
             'red+cyan': 'white', 'cyan+red': 'white'
         };
         
+        // Timer state
+        this.timerStart = null;
+        this.timerRunning = false;
+        this.lastTime = 0;
+        
         this.initLevels();
         this.initEventListeners();
         this.initAudio();
         this.initSwipeNavigation();
+        this.initKeyboardShortcuts();
         this.renderLevelSelect();
         this.startAnimationLoop();
+        
+        // Check for shared level in URL
+        this.checkForSharedLevel();
         
         // iOS-style entrance animation
         this.animateEntrance();
@@ -270,7 +279,16 @@ class LightCycleGame {
     // ==================== SETTINGS & PROGRESS ====================
     loadSettings() {
         const saved = localStorage.getItem('lightcycle_settings');
-        const defaults = { sound: true, haptic: true, gridNumbers: false, swipeMode: true, showHints: true, devMode: false };
+        const defaults = { 
+            sound: true, 
+            haptic: true, 
+            gridNumbers: false, 
+            swipeMode: true, 
+            showHints: true, 
+            devMode: false,
+            colorblindMode: false,
+            timeAttackMode: false
+        };
         return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
     
@@ -278,10 +296,428 @@ class LightCycleGame {
     
     loadProgress() {
         const saved = localStorage.getItem('lightcycle_progress');
-        return saved ? JSON.parse(saved) : { completedLevels: [], stars: {}, moveHistory: {} };
+        const defaults = { 
+            completedLevels: [], 
+            stars: {}, 
+            moveHistory: {},
+            bestTimes: {},
+            dailyCompleted: {},
+            dailyStreak: 0,
+            lastDailyDate: null
+        };
+        return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
     
     saveProgress() { localStorage.setItem('lightcycle_progress', JSON.stringify(this.progress)); }
+    
+    // ==================== COLORBLIND SUPPORT ====================
+    getColorLabel(colorName) {
+        const labels = {
+            red: 'R', blue: 'B', yellow: 'Y', green: 'G',
+            cyan: 'C', magenta: 'M', orange: 'O', purple: 'P',
+            white: 'W', pink: 'K'
+        };
+        return labels[colorName] || '?';
+    }
+    
+    getColorPattern(colorName) {
+        // Returns a pattern type for colorblind differentiation
+        const patterns = {
+            red: 'diagonal', blue: 'horizontal', yellow: 'vertical', green: 'dots',
+            cyan: 'cross', magenta: 'zigzag', orange: 'checker', purple: 'waves',
+            white: 'solid', pink: 'diamond'
+        };
+        return patterns[colorName] || 'solid';
+    }
+    
+    // ==================== TIMER FUNCTIONS ====================
+    startTimer() {
+        this.timerStart = Date.now();
+        this.timerRunning = true;
+        this.updateTimerDisplay();
+    }
+    
+    stopTimer() {
+        this.timerRunning = false;
+        if (this.timerStart) {
+            this.lastTime = Date.now() - this.timerStart;
+        }
+        return this.lastTime || 0;
+    }
+    
+    updateTimerDisplay() {
+        if (!this.timerRunning) return;
+        const elapsed = Date.now() - this.timerStart;
+        const timerEl = document.getElementById('timer-display');
+        if (timerEl) {
+            timerEl.textContent = this.formatTime(elapsed);
+        }
+        if (this.timerRunning) {
+            requestAnimationFrame(() => this.updateTimerDisplay());
+        }
+    }
+    
+    formatTime(ms) {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        const milliseconds = Math.floor((ms % 1000) / 10);
+        if (minutes > 0) {
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+        }
+        return `${remainingSeconds}.${milliseconds.toString().padStart(2, '0')}s`;
+    }
+    
+    // ==================== DAILY CHALLENGE ====================
+    getDailySeed() {
+        const now = new Date();
+        return parseInt(`${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`);
+    }
+    
+    seededRandom(seed) {
+        const x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+    }
+    
+    generateDailyChallenge() {
+        const seed = this.getDailySeed();
+        let s = seed;
+        const rand = () => {
+            s = (s * 1103515245 + 12345) & 0x7fffffff;
+            return s / 0x7fffffff;
+        };
+        
+        // Day of week affects difficulty (0=Sun harder, 6=Sat medium, 1-5 easier)
+        const dayOfWeek = new Date().getDay();
+        const difficulty = dayOfWeek === 0 ? 'hard' : dayOfWeek === 6 ? 'medium' : 'easy';
+        
+        const gridSize = difficulty === 'hard' ? 8 : difficulty === 'medium' ? 7 : 6;
+        const numOutlets = difficulty === 'hard' ? 3 : difficulty === 'medium' ? 2 : 2;
+        
+        const colors = ['red', 'blue', 'yellow', 'cyan', 'magenta'];
+        const outlets = [];
+        const stations = [];
+        const obstacles = [];
+        
+        // Generate outlets on left side
+        const usedY = new Set();
+        for (let i = 0; i < numOutlets; i++) {
+            let y;
+            do { y = Math.floor(rand() * (gridSize - 2)) + 1; } while (usedY.has(y));
+            usedY.add(y);
+            const color = colors[Math.floor(rand() * colors.length)];
+            outlets.push({ id: `o${i + 1}`, x: 0, y, color });
+        }
+        
+        // Generate stations on right side - match or mix colors
+        const stationY = new Set();
+        if (difficulty === 'easy') {
+            // Same colors as outlets
+            outlets.forEach((o, i) => {
+                let y;
+                do { y = Math.floor(rand() * (gridSize - 2)) + 1; } while (stationY.has(y));
+                stationY.add(y);
+                stations.push({ id: `s${i + 1}`, x: gridSize - 1, y, color: o.color });
+            });
+        } else {
+            // Mix some colors
+            const mixedColors = [];
+            if (outlets.length >= 2) {
+                const c1 = outlets[0].color;
+                const c2 = outlets[1].color;
+                const mixKey = `${c1}+${c2}`;
+                const mixed = this.colorMixing[mixKey] || c1;
+                mixedColors.push(mixed);
+            }
+            
+            outlets.forEach((o, i) => {
+                let y;
+                do { y = Math.floor(rand() * (gridSize - 2)) + 1; } while (stationY.has(y));
+                stationY.add(y);
+                const color = i < mixedColors.length ? mixedColors[i] : o.color;
+                stations.push({ id: `s${i + 1}`, x: gridSize - 1, y, color });
+            });
+        }
+        
+        // Add some obstacles for medium/hard
+        const numObstacles = difficulty === 'hard' ? 6 : difficulty === 'medium' ? 3 : 0;
+        const obstacleSet = new Set();
+        for (let i = 0; i < numObstacles; i++) {
+            let x, y, key;
+            let attempts = 0;
+            do {
+                x = Math.floor(rand() * (gridSize - 4)) + 2;
+                y = Math.floor(rand() * gridSize);
+                key = `${x},${y}`;
+                attempts++;
+            } while ((obstacleSet.has(key) || outlets.some(o => o.x === x && o.y === y) || stations.some(s => s.x === x && s.y === y)) && attempts < 50);
+            
+            if (attempts < 50) {
+                obstacleSet.add(key);
+                obstacles.push({ x, y });
+            }
+        }
+        
+        return {
+            id: 'daily',
+            name: `Daily Challenge`,
+            description: `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} - ${new Date().toLocaleDateString()}`,
+            gridSize,
+            par: gridSize * numOutlets,
+            undoBonus: difficulty === 'hard' ? 2 : difficulty === 'medium' ? 3 : 5,
+            outlets,
+            stations,
+            obstacles,
+            splitters: [],
+            colorChangers: [],
+            isDaily: true,
+            difficulty,
+            seed
+        };
+    }
+    
+    isDailyCompleted() {
+        const today = this.getDailySeed().toString();
+        return this.progress.dailyCompleted[today] === true;
+    }
+    
+    completeDailyChallenge(stars, time) {
+        const today = this.getDailySeed().toString();
+        const yesterday = (this.getDailySeed() - 1).toString();
+        
+        if (!this.progress.dailyCompleted[today]) {
+            this.progress.dailyCompleted[today] = true;
+            
+            // Update streak
+            if (this.progress.lastDailyDate === yesterday) {
+                this.progress.dailyStreak++;
+            } else if (this.progress.lastDailyDate !== today) {
+                this.progress.dailyStreak = 1;
+            }
+            this.progress.lastDailyDate = today;
+            
+            // Track best time
+            const existingTime = this.progress.bestTimes['daily_' + today];
+            if (!existingTime || time < existingTime) {
+                this.progress.bestTimes['daily_' + today] = time;
+            }
+            
+            this.saveProgress();
+        }
+    }
+    
+    // ==================== LEVEL SHARING ====================
+    encodeLevel(level) {
+        const data = {
+            n: level.name,
+            g: level.gridSize,
+            p: level.par,
+            u: level.undoBonus,
+            o: level.outlets.map(o => [o.x, o.y, o.color.charAt(0)]),
+            s: level.stations.map(s => [s.x, s.y, s.color.charAt(0)]),
+            b: level.obstacles?.map(b => [b.x, b.y]) || [],
+            sp: level.splitters?.map(sp => [sp.x, sp.y, sp.directions.map(d => d.charAt(0)).join('')]) || [],
+            cc: level.colorChangers?.map(c => [c.x, c.y, c.toColor.charAt(0)]) || []
+        };
+        return btoa(JSON.stringify(data)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    
+    decodeLevel(code) {
+        try {
+            const padded = code.replace(/-/g, '+').replace(/_/g, '/');
+            const data = JSON.parse(atob(padded));
+            const colorMap = { r: 'red', b: 'blue', y: 'yellow', g: 'green', c: 'cyan', m: 'magenta', o: 'orange', p: 'purple', w: 'white', k: 'pink' };
+            const dirMap = { u: 'up', d: 'down', l: 'left', r: 'right' };
+            
+            return {
+                id: 'custom_shared',
+                name: data.n || 'Shared Level',
+                description: 'A shared puzzle',
+                gridSize: data.g || 7,
+                par: data.p || 20,
+                undoBonus: data.u || 3,
+                outlets: (data.o || []).map((o, i) => ({ id: `o${i + 1}`, x: o[0], y: o[1], color: colorMap[o[2]] || 'cyan' })),
+                stations: (data.s || []).map((s, i) => ({ id: `s${i + 1}`, x: s[0], y: s[1], color: colorMap[s[2]] || 'cyan' })),
+                obstacles: (data.b || []).map(b => ({ x: b[0], y: b[1] })),
+                splitters: (data.sp || []).map(sp => ({ x: sp[0], y: sp[1], directions: sp[2].split('').map(d => dirMap[d]) })),
+                colorChangers: (data.cc || []).map(c => ({ x: c[0], y: c[1], toColor: colorMap[c[2]] || 'cyan' })),
+                isShared: true
+            };
+        } catch (e) {
+            console.error('Failed to decode level:', e);
+            return null;
+        }
+    }
+    
+    shareCurrentLevel() {
+        const level = this.levels[this.currentLevel];
+        if (!level) return null;
+        
+        const code = this.encodeLevel(level);
+        const url = `${window.location.origin}${window.location.pathname}?level=${code}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: `Light Cycle - ${level.name}`,
+                text: `Can you solve this puzzle?`,
+                url: url
+            }).catch(() => {});
+        } else if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(() => {
+                this.showToast('Link copied to clipboard!');
+            }).catch(() => {
+                this.showToast('Share: ' + url);
+            });
+        }
+        return url;
+    }
+    
+    checkForSharedLevel() {
+        const params = new URLSearchParams(window.location.search);
+        const levelCode = params.get('level');
+        if (levelCode) {
+            const level = this.decodeLevel(levelCode);
+            if (level) {
+                this.showToast('Loading shared level...');
+                setTimeout(() => this.playSharedLevel(level), 500);
+                // Clean URL
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+    }
+    
+    playSharedLevel(level) {
+        this.currentLevel = -1; // Mark as custom
+        this.currentLevelData = level;
+        this.startLevel(-1, level);
+    }
+    
+    // ==================== KEYBOARD SHORTCUTS ====================
+    initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Check active screen
+            const gameScreen = document.getElementById('game-screen');
+            const isGameActive = gameScreen && gameScreen.classList.contains('active');
+            const levelSelect = document.getElementById('level-select');
+            const isLevelSelectActive = levelSelect && levelSelect.classList.contains('active');
+            
+            // Global shortcuts
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (isGameActive) {
+                    document.getElementById('game-back-btn').click();
+                } else if (!document.getElementById('main-menu').classList.contains('active')) {
+                    const backBtn = document.querySelector('.screen.active .back-btn');
+                    if (backBtn) backBtn.click();
+                }
+                return;
+            }
+            
+            // Dev mode toggle
+            if (e.shiftKey && e.key === 'D') {
+                e.preventDefault();
+                this.settings.devMode = !this.settings.devMode;
+                this.saveSettings();
+                this.showToast(this.settings.devMode ? '🔓 Dev mode ON' : '🔒 Dev mode OFF');
+                this.renderLevelSelect();
+                return;
+            }
+            
+            // Game screen shortcuts
+            if (isGameActive && !this.isRunning) {
+                switch (e.key.toLowerCase()) {
+                    case 'z':
+                        if (e.ctrlKey || e.metaKey) {
+                            e.preventDefault();
+                            this.undo();
+                        }
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        this.undo();
+                        break;
+                    case 'c':
+                        if (!e.ctrlKey && !e.metaKey) {
+                            e.preventDefault();
+                            this.clearPaths();
+                        }
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        this.resetLevel();
+                        break;
+                    case ' ':
+                    case 'Enter':
+                        e.preventDefault();
+                        this.runSimulation();
+                        break;
+                }
+                
+                // Number keys for outlet selection (1-9)
+                if (e.key >= '1' && e.key <= '9' && this.level) {
+                    const outletIndex = parseInt(e.key) - 1;
+                    if (this.level.outlets && outletIndex < this.level.outlets.length) {
+                        e.preventDefault();
+                        const outlet = this.level.outlets[outletIndex];
+                        this.selectOutlet(outlet);
+                    }
+                }
+            }
+            
+            // Level select shortcuts
+            if (isLevelSelectActive) {
+                if (e.key >= '1' && e.key <= '9') {
+                    const levelNum = parseInt(e.key);
+                    if (levelNum <= this.levels.length) {
+                        e.preventDefault();
+                        const isUnlocked = this.settings.devMode || levelNum === 1 || this.progress.completedLevels.includes(levelNum - 1);
+                        if (isUnlocked) {
+                            this.startLevel(levelNum - 1);
+                        }
+                    }
+                }
+                if (e.key === 'd' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.startDailyChallenge();
+                }
+            }
+            
+            // Main menu shortcuts
+            const mainMenu = document.getElementById('main-menu');
+            if (mainMenu && mainMenu.classList.contains('active')) {
+                switch (e.key.toLowerCase()) {
+                    case 'p':
+                    case 'Enter':
+                    case ' ':
+                        e.preventDefault();
+                        document.getElementById('play-btn').click();
+                        break;
+                    case 'l':
+                        e.preventDefault();
+                        document.getElementById('levels-btn').click();
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        document.getElementById('how-to-play-btn').click();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        document.getElementById('settings-btn').click();
+                        break;
+                }
+            }
+        });
+    }
+    
+    selectOutlet(outlet) {
+        // Visual feedback and start drawing from this outlet
+        this.currentOutlet = outlet;
+        this.currentPath = [{ x: outlet.x, y: outlet.y }];
+        this.hapticFeedback('selection');
+        this.playSound('click');
+        this.showToast(`Selected ${outlet.color} outlet`);
+        this.render();
+    }
     
     // ==================== EVENT LISTENERS ====================
     initEventListeners() {
@@ -356,6 +792,38 @@ class LightCycleGame {
             this.hapticFeedback('selection');
         });
         
+        // Colorblind mode toggle
+        const colorblindToggle = document.getElementById('colorblind-toggle');
+        if (colorblindToggle) {
+            colorblindToggle.addEventListener('change', (e) => {
+                this.settings.colorblindMode = e.target.checked; this.saveSettings();
+                this.hapticFeedback('selection');
+                this.showToast(e.target.checked ? 'Colorblind mode ON - color labels visible' : 'Colorblind mode OFF');
+                this.render();
+            });
+        }
+        
+        // Time attack mode toggle
+        const timeAttackToggle = document.getElementById('time-attack-toggle');
+        if (timeAttackToggle) {
+            timeAttackToggle.addEventListener('change', (e) => {
+                this.settings.timeAttackMode = e.target.checked; this.saveSettings();
+                this.hapticFeedback('selection');
+                this.showToast(e.target.checked ? 'Time Attack ON - timer enabled' : 'Time Attack OFF');
+            });
+        }
+        
+        // Share level button
+        const shareBtn = document.getElementById('share-level-btn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', (e) => {
+                this.animateButtonPress(e.target);
+                this.playSound('click');
+                this.hapticFeedback('light');
+                this.shareCurrentLevel();
+            });
+        }
+        
         const swipeToggle = document.getElementById('swipe-mode-toggle');
         if (swipeToggle) {
             swipeToggle.addEventListener('change', (e) => {
@@ -367,21 +835,10 @@ class LightCycleGame {
         
         document.getElementById('reset-progress-btn').addEventListener('click', () => {
             this.showConfirmDialog('Reset all progress?', 'This cannot be undone.', () => {
-                this.progress = { completedLevels: [], stars: {}, moveHistory: {} };
+                this.progress = { completedLevels: [], stars: {}, moveHistory: {}, bestTimes: {}, dailyCompleted: {}, dailyStreak: 0, lastDailyDate: null };
                 this.saveProgress(); this.renderLevelSelect(); this.playSound('click');
                 this.showToast('Progress reset');
             });
-        });
-        
-        // Dev mode keyboard shortcut: Shift+D to toggle
-        document.addEventListener('keydown', (e) => {
-            if (e.shiftKey && e.key === 'D') {
-                this.settings.devMode = !this.settings.devMode;
-                this.saveSettings();
-                this.showToast(this.settings.devMode ? '🔓 Dev mode ON - all levels unlocked' : '🔒 Dev mode OFF');
-                this.renderLevelSelect();
-                this.hapticFeedback('medium');
-            }
         });
         
         // Modal buttons
@@ -404,6 +861,8 @@ class LightCycleGame {
         document.getElementById('haptic-toggle').checked = this.settings.haptic;
         document.getElementById('grid-numbers-toggle').checked = this.settings.gridNumbers;
         if (swipeToggle) swipeToggle.checked = this.settings.swipeMode !== false;
+        if (colorblindToggle) colorblindToggle.checked = this.settings.colorblindMode;
+        if (timeAttackToggle) timeAttackToggle.checked = this.settings.timeAttackMode;
         
         window.addEventListener('resize', () => this.resizeCanvas());
         
@@ -1010,20 +1469,52 @@ class LightCycleGame {
     
     // ==================== LEVEL COMPLETION ====================
     levelComplete() {
-        if (!this.progress.completedLevels.includes(this.currentLevel)) {
-            this.progress.completedLevels.push(this.currentLevel);
+        // Stop timer and get elapsed time
+        const elapsedTime = this.stopTimer();
+        
+        const level = this.level || this.levels[this.currentLevel];
+        
+        // Handle daily challenge
+        if (level && level.isDaily) {
+            const stars = this.calculateStars(level);
+            this.completeDailyChallenge(stars, elapsedTime);
+            this.showLevelCompleteModal(stars, elapsedTime, true);
+            this.celebrateConfetti();
+            return;
         }
         
-        const level = this.levels[this.currentLevel];
-        const stars = this.calculateStars(level);
-        
-        if (!this.progress.stars[this.currentLevel] || this.progress.stars[this.currentLevel] < stars) {
-            this.progress.stars[this.currentLevel] = stars;
+        // Handle shared level
+        if (level && level.isShared) {
+            const stars = this.calculateStars(level);
+            this.showLevelCompleteModal(stars, elapsedTime, false, true);
+            this.celebrateConfetti();
+            return;
         }
         
-        this.saveProgress();
-        this.showLevelCompleteModal(stars);
-        this.celebrateConfetti();
+        // Regular level handling
+        if (this.currentLevel >= 0) {
+            if (!this.progress.completedLevels.includes(this.currentLevel)) {
+                this.progress.completedLevels.push(this.currentLevel);
+            }
+            
+            const stars = this.calculateStars(level);
+            
+            if (!this.progress.stars[this.currentLevel] || this.progress.stars[this.currentLevel] < stars) {
+                this.progress.stars[this.currentLevel] = stars;
+            }
+            
+            // Track best time
+            if (this.settings.timeAttackMode || elapsedTime > 0) {
+                const existingTime = this.progress.bestTimes[this.currentLevel];
+                if (!existingTime || elapsedTime < existingTime) {
+                    this.progress.bestTimes[this.currentLevel] = elapsedTime;
+                }
+            }
+            
+            this.saveProgress();
+            this.showLevelCompleteModal(stars, elapsedTime);
+            this.celebrateConfetti();
+        }
     }
     
     calculateStars(level) {
@@ -1114,6 +1605,27 @@ class LightCycleGame {
         const grid = document.getElementById('level-grid');
         grid.innerHTML = '';
         
+        // Daily Challenge tile
+        const dailyTile = document.createElement('div');
+        dailyTile.className = 'level-tile daily-challenge';
+        const isDailyDone = this.isDailyCompleted();
+        if (isDailyDone) dailyTile.classList.add('completed');
+        
+        const streakText = this.progress.dailyStreak > 0 ? `🔥 ${this.progress.dailyStreak} day streak` : '';
+        dailyTile.innerHTML = `
+            <span class="level-number">📅</span>
+            <span class="level-name">Daily Challenge</span>
+            <span class="level-stars">${isDailyDone ? '✓ Completed' : streakText || 'New puzzle!'}</span>
+        `;
+        dailyTile.addEventListener('click', () => {
+            this.animateButtonPress(dailyTile);
+            this.playSound('click');
+            this.hapticFeedback('medium');
+            this.startDailyChallenge();
+        });
+        grid.appendChild(dailyTile);
+        
+        // Regular levels
         this.levels.forEach((level, index) => {
             const tile = document.createElement('div');
             tile.className = 'level-tile';
@@ -1123,10 +1635,14 @@ class LightCycleGame {
             if (!isUnlocked) tile.classList.add('locked');
             
             const stars = this.progress.stars[index] || 0;
+            const bestTime = this.progress.bestTimes[index];
+            const timeText = bestTime ? this.formatTime(bestTime) : '';
+            
             tile.innerHTML = `
                 <span class="level-number">${level.id}</span>
                 <span class="level-name">${level.name}</span>
                 <span class="level-stars">${isCompleted ? '★'.repeat(stars) + '☆'.repeat(3-stars) : '☆☆☆'}</span>
+                ${timeText ? `<span class="level-time">${timeText}</span>` : ''}
             `;
             
             if (isUnlocked) {
@@ -1141,6 +1657,35 @@ class LightCycleGame {
         });
     }
     
+    startDailyChallenge() {
+        const daily = this.generateDailyChallenge();
+        this.currentLevel = -1;
+        this.currentLevelData = daily;
+        this.level = daily;
+        
+        document.getElementById('current-level-name').textContent = daily.name;
+        document.getElementById('level-message').textContent = daily.description;
+        this.gridSize = daily.gridSize;
+        this.paths = {};
+        this.currentPath = null;
+        this.currentOutlet = null;
+        this.cycles = [];
+        this.isRunning = false;
+        this.trailParticles = [];
+        this.undoStack = [];
+        this.undoCount = 0;
+        
+        // Enable timer for daily
+        this.showScreen('game-screen');
+        this.resizeCanvas();
+        
+        // Start timer
+        setTimeout(() => {
+            this.startTimer();
+            this.showToast(`${daily.difficulty.toUpperCase()} difficulty - Good luck!`, 2000);
+        }, 500);
+    }
+    
     getNextUncompletedLevel() {
         for (let i = 0; i < this.levels.length; i++) {
             if (!this.progress.completedLevels.includes(i)) return i;
@@ -1148,10 +1693,14 @@ class LightCycleGame {
         return 0;
     }
     
-    startLevel(levelIndex) {
+    startLevel(levelIndex, customLevel = null) {
         this.currentLevel = levelIndex;
-        const level = this.levels[levelIndex];
-        document.getElementById('current-level-name').textContent = `Level ${level.id}: ${level.name}`;
+        const level = customLevel || (levelIndex >= 0 ? this.levels[levelIndex] : this.currentLevelData);
+        this.level = level;
+        this.currentLevelData = level;
+        
+        const displayName = level.isDaily ? level.name : (level.isShared ? level.name : `Level ${level.id}: ${level.name}`);
+        document.getElementById('current-level-name').textContent = displayName;
         document.getElementById('level-message').textContent = level.description;
         this.gridSize = level.gridSize;
         this.paths = {};
@@ -1161,14 +1710,31 @@ class LightCycleGame {
         this.isRunning = false;
         this.trailParticles = [];
         this.undoStack = [];
-        this.undoCount = 0; // Track undos for star calculation
+        this.undoCount = 0;
+        
+        // Reset timer
+        this.stopTimer();
+        this.timerStart = null;
+        
         this.showScreen('game-screen');
         this.resizeCanvas();
         
+        // Start timer for time attack or daily mode
+        if (this.settings.timeAttackMode || level.isDaily) {
+            setTimeout(() => this.startTimer(), 300);
+        }
+        
         // Show hint for first level
-        if (levelIndex === 0 && this.settings.showHints) {
+        if (levelIndex === 0 && this.settings.showHints && !customLevel) {
             setTimeout(() => {
                 this.showToast('Swipe from the outlet to draw a path', 3000);
+            }, 500);
+        }
+        
+        // Show shared level toast
+        if (level.isShared) {
+            setTimeout(() => {
+                this.showToast('Playing shared level!', 2000);
             }, 500);
         }
     }
@@ -1259,7 +1825,7 @@ class LightCycleGame {
         requestAnimationFrame(() => dialog.classList.add('active'));
     }
     
-    showLevelCompleteModal(stars) {
+    showLevelCompleteModal(stars, time = 0, isDaily = false, isShared = false) {
         const modal = document.getElementById('level-complete-modal');
         const starsContainer = document.getElementById('stars-container');
         
@@ -1272,12 +1838,44 @@ class LightCycleGame {
             starsContainer.appendChild(star);
         }
         
-        const messages = [
-            'Good start!',
-            'Well done!',
-            'Perfect routing!'
-        ];
-        document.getElementById('complete-message').textContent = messages[stars - 1];
+        let message = '';
+        if (isDaily) {
+            const streakText = this.progress.dailyStreak > 1 ? ` 🔥 ${this.progress.dailyStreak} day streak!` : '';
+            message = `Daily Complete!${streakText}`;
+        } else if (isShared) {
+            message = 'Shared level complete!';
+        } else {
+            const messages = ['Good start!', 'Well done!', 'Perfect routing!'];
+            message = messages[stars - 1];
+        }
+        
+        // Add time if tracked
+        if (time > 0) {
+            message += ` ⏱️ ${this.formatTime(time)}`;
+        }
+        
+        document.getElementById('complete-message').textContent = message;
+        
+        // Update Next button for daily/shared
+        const nextBtn = document.getElementById('next-level-btn');
+        if (isDaily || isShared) {
+            nextBtn.textContent = 'MENU';
+            nextBtn.onclick = () => {
+                this.hideModal();
+                this.showScreen('level-select', 'slideRight');
+            };
+        } else {
+            nextBtn.textContent = 'NEXT';
+            nextBtn.onclick = () => {
+                this.hideModal();
+                if (this.currentLevel < this.levels.length - 1) {
+                    this.startLevel(this.currentLevel + 1);
+                } else {
+                    this.showScreen('level-select', 'slideRight');
+                    this.showToast('🎉 All levels complete!', 3000);
+                }
+            };
+        }
         
         modal.classList.add('active');
     }
@@ -1689,7 +2287,7 @@ class LightCycleGame {
         const ctx = this.ctx;
         const pulse = Math.sin(this.pulsePhase * 2) * 0.2 + 0.8;
         
-        outlets.forEach(outlet => {
+        outlets.forEach((outlet, index) => {
             const cx = outlet.x * this.cellSize + this.cellSize / 2;
             const cy = outlet.y * this.cellSize + this.cellSize / 2;
             const size = this.cellSize * 0.35;
@@ -1712,6 +2310,21 @@ class LightCycleGame {
             ctx.closePath();
             ctx.fill();
             ctx.shadowBlur = 0;
+            
+            // Colorblind mode: add letter label
+            if (this.settings.colorblindMode) {
+                const label = this.getColorLabel(outlet.color);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${this.cellSize * 0.2}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, cx, cy + size + this.cellSize * 0.15);
+                
+                // Also show number for keyboard selection
+                ctx.fillStyle = '#888';
+                ctx.font = `${this.cellSize * 0.15}px sans-serif`;
+                ctx.fillText(`[${index + 1}]`, cx, cy - size - this.cellSize * 0.12);
+            }
             
             // Selection indicator
             if (this.currentOutlet && this.currentOutlet.id === outlet.id) {
@@ -1757,6 +2370,16 @@ class LightCycleGame {
             ctx.fill();
             ctx.globalAlpha = 1;
             ctx.shadowBlur = 0;
+            
+            // Colorblind mode: add letter label
+            if (this.settings.colorblindMode) {
+                const label = this.getColorLabel(station.color);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${this.cellSize * 0.2}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, cx, cy + size + this.cellSize * 0.15);
+            }
         });
     }
     
