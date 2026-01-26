@@ -86,69 +86,85 @@ class LightCycleGame {
     
     // ==================== LEVELS ====================
     initLevels() {
+        // par = optimal number of total path nodes, undoBonus = max undos for 3 stars
         this.levels = [
             { id: 1, name: "First Light", description: "Swipe from outlet to station", gridSize: 5,
+              par: 5, undoBonus: 0,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }],
               stations: [{ id: 's1', x: 4, y: 2, color: 'cyan' }],
               obstacles: [], splitters: [], colorChangers: [] },
             { id: 2, name: "Two Paths", description: "Guide both cycles to their stations", gridSize: 5,
+              par: 10, undoBonus: 1,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 3, color: 'magenta' }],
               stations: [{ id: 's1', x: 4, y: 1, color: 'cyan' }, { id: 's2', x: 4, y: 3, color: 'magenta' }],
               obstacles: [], splitters: [], colorChangers: [] },
             { id: 3, name: "Crossroads", description: "Paths can cross each other", gridSize: 5,
+              par: 10, undoBonus: 1,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }, { id: 'o2', x: 2, y: 0, color: 'magenta' }],
               stations: [{ id: 's1', x: 4, y: 2, color: 'cyan' }, { id: 's2', x: 2, y: 4, color: 'magenta' }],
               obstacles: [], splitters: [], colorChangers: [] },
             { id: 4, name: "Color Blend", description: "Merge paths: Red + Blue = Purple", gridSize: 6,
+              par: 10, undoBonus: 2,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'blue' }],
               stations: [{ id: 's1', x: 5, y: 2, color: 'purple' }],
               obstacles: [], splitters: [], colorChangers: [] },
             { id: 5, name: "Split Decision", description: "Splitters divide your path", gridSize: 6,
+              par: 10, undoBonus: 2,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }],
               stations: [{ id: 's1', x: 5, y: 0, color: 'cyan' }, { id: 's2', x: 5, y: 4, color: 'cyan' }],
               obstacles: [], splitters: [{ x: 3, y: 2, directions: ['up', 'down'] }], colorChangers: [] },
             { id: 6, name: "Obstacle Course", description: "Navigate around barriers", gridSize: 6,
+              par: 10, undoBonus: 2,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }],
               stations: [{ id: 's1', x: 5, y: 2, color: 'cyan' }],
               obstacles: [{ x: 2, y: 1 }, { x: 2, y: 2 }, { x: 2, y: 3 }, { x: 4, y: 0 }, { x: 4, y: 1 }, { x: 4, y: 3 }, { x: 4, y: 4 }],
               splitters: [], colorChangers: [] },
             { id: 7, name: "Color Shift", description: "Color changers transform cycles", gridSize: 6,
+              par: 6, undoBonus: 1,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'red' }],
               stations: [{ id: 's1', x: 5, y: 2, color: 'blue' }],
               obstacles: [], splitters: [], colorChangers: [{ x: 3, y: 2, toColor: 'blue' }] },
             { id: 8, name: "Triple Threat", description: "Three colors, three destinations", gridSize: 7,
+              par: 24, undoBonus: 3,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'blue' }, { id: 'o3', x: 0, y: 5, color: 'yellow' }],
               stations: [{ id: 's1', x: 6, y: 1, color: 'red' }, { id: 's2', x: 6, y: 3, color: 'blue' }, { id: 's3', x: 6, y: 5, color: 'yellow' }],
               obstacles: [{ x: 3, y: 0 }, { x: 3, y: 2 }, { x: 3, y: 4 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
             { id: 9, name: "Mix Master", description: "Create multiple mixed colors", gridSize: 7,
+              par: 18, undoBonus: 3,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'yellow' }, { id: 'o3', x: 0, y: 5, color: 'blue' }],
               stations: [{ id: 's1', x: 6, y: 2, color: 'orange' }, { id: 's2', x: 6, y: 4, color: 'green' }],
               obstacles: [], splitters: [], colorChangers: [] },
             { id: 10, name: "Complex Web", description: "Multiple splits and merges", gridSize: 7,
+              par: 20, undoBonus: 4,
               outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan' }, { id: 'o2', x: 3, y: 0, color: 'magenta' }],
               stations: [{ id: 's1', x: 6, y: 1, color: 'cyan' }, { id: 's2', x: 6, y: 5, color: 'magenta' }, { id: 's3', x: 3, y: 6, color: 'white' }],
               obstacles: [{ x: 2, y: 2 }, { x: 4, y: 4 }], splitters: [{ x: 2, y: 3, directions: ['right', 'down'] }], colorChangers: [] },
             { id: 11, name: "The Maze", description: "Find your way through", gridSize: 7,
+              par: 18, undoBonus: 3,
               outlets: [{ id: 'o1', x: 0, y: 0, color: 'cyan' }],
               stations: [{ id: 's1', x: 6, y: 6, color: 'cyan' }],
               obstacles: [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 4, y: 2 }, { x: 4, y: 3 }, { x: 1, y: 3 }, { x: 2, y: 3 }, { x: 2, y: 4 }, { x: 2, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }],
               splitters: [], colorChangers: [] },
             { id: 12, name: "Grand Finale", description: "Put all skills to the test", gridSize: 7,
+              par: 22, undoBonus: 4,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 5, color: 'blue' }],
               stations: [{ id: 's1', x: 6, y: 0, color: 'red' }, { id: 's2', x: 6, y: 3, color: 'purple' }, { id: 's3', x: 6, y: 6, color: 'blue' }],
               obstacles: [{ x: 2, y: 0 }, { x: 2, y: 6 }, { x: 4, y: 2 }, { x: 4, y: 4 }],
               splitters: [{ x: 2, y: 1, directions: ['right', 'down'] }, { x: 2, y: 5, directions: ['right', 'up'] }], colorChangers: [] },
             { id: 13, name: "Prismatic", description: "Create all secondary colors", gridSize: 7,
+              par: 24, undoBonus: 4,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'yellow' }, { id: 'o3', x: 0, y: 5, color: 'blue' }],
               stations: [{ id: 's1', x: 6, y: 1, color: 'orange' }, { id: 's2', x: 6, y: 3, color: 'green' }, { id: 's3', x: 6, y: 5, color: 'purple' }],
               obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
             { id: 14, name: "Chain Reaction", description: "Multiple transformations", gridSize: 7,
+              par: 16, undoBonus: 3,
               outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan' }],
               stations: [{ id: 's1', x: 6, y: 1, color: 'magenta' }, { id: 's2', x: 6, y: 5, color: 'yellow' }],
               obstacles: [{ x: 3, y: 3 }],
               splitters: [{ x: 2, y: 3, directions: ['up', 'down'] }],
               colorChangers: [{ x: 2, y: 1, toColor: 'magenta' }, { x: 2, y: 5, toColor: 'yellow' }] },
             { id: 15, name: "Neon Dreams", description: "Master the grid", gridSize: 8,
+              par: 30, undoBonus: 5,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'cyan' }, { id: 'o3', x: 0, y: 7, color: 'yellow' }],
               stations: [{ id: 's1', x: 7, y: 0, color: 'orange' }, { id: 's2', x: 7, y: 3, color: 'white' }, { id: 's3', x: 7, y: 6, color: 'green' }],
               obstacles: [{ x: 2, y: 2 }, { x: 2, y: 5 }, { x: 4, y: 1 }, { x: 4, y: 4 }, { x: 4, y: 6 }, { x: 6, y: 2 }, { x: 6, y: 5 }],
@@ -742,6 +758,7 @@ class LightCycleGame {
             this.currentPath = this.paths[this.currentOutlet.id];
         }
         
+        this.undoCount++; // Track for star calculation
         this.hapticFeedback('light');
     }
     
@@ -997,16 +1014,8 @@ class LightCycleGame {
             this.progress.completedLevels.push(this.currentLevel);
         }
         
-        // Calculate stars based on path efficiency
-        let totalPathLength = 0;
-        Object.values(this.paths).forEach(path => totalPathLength += path.length);
         const level = this.levels[this.currentLevel];
-        const minPossible = level.outlets.length * 2; // Rough minimum
-        const efficiency = minPossible / totalPathLength;
-        
-        let stars = 1;
-        if (efficiency > 0.4) stars = 2;
-        if (efficiency > 0.6) stars = 3;
+        const stars = this.calculateStars(level);
         
         if (!this.progress.stars[this.currentLevel] || this.progress.stars[this.currentLevel] < stars) {
             this.progress.stars[this.currentLevel] = stars;
@@ -1015,6 +1024,61 @@ class LightCycleGame {
         this.saveProgress();
         this.showLevelCompleteModal(stars);
         this.celebrateConfetti();
+    }
+    
+    calculateStars(level) {
+        // Hybrid star system: efficiency + undo penalty
+        // Each factor contributes to the final score
+        
+        // 1. Path Efficiency (how close to par)
+        let totalPathLength = 0;
+        Object.values(this.paths).forEach(path => totalPathLength += path.length);
+        
+        const par = level.par || (level.outlets.length * 5); // Fallback if no par defined
+        const efficiencyRatio = par / totalPathLength; // >1 means under par, <1 means over par
+        
+        // 2. Undo Penalty
+        const undoBonus = level.undoBonus || 2; // Max undos allowed for full credit
+        const undoPenalty = Math.max(0, this.undoCount - undoBonus); // Penalty for excess undos
+        
+        // Calculate star score (0-100 scale)
+        let score = 0;
+        
+        // Efficiency component (0-70 points)
+        // At par = 50 points, under par = up to 70 points, over par decreases
+        if (efficiencyRatio >= 1) {
+            // At or under par: 50-70 points
+            score += 50 + Math.min(20, (efficiencyRatio - 1) * 40);
+        } else {
+            // Over par: 0-50 points based on how close
+            score += Math.max(0, efficiencyRatio * 50);
+        }
+        
+        // Undo component (0-30 points)
+        // No excess undos = 30 points, each excess undo removes 10 points
+        score += Math.max(0, 30 - (undoPenalty * 10));
+        
+        // Convert score to stars
+        // 80+ = 3 stars (excellent: at/under par with few undos)
+        // 50+ = 2 stars (good: completed reasonably efficiently)  
+        // <50 = 1 star (completed but needs improvement)
+        let stars = 1;
+        if (score >= 50) stars = 2;
+        if (score >= 80) stars = 3;
+        
+        // Debug logging (remove in production)
+        console.log(`Level ${level.id} complete:`, {
+            pathLength: totalPathLength,
+            par: par,
+            efficiencyRatio: efficiencyRatio.toFixed(2),
+            undoCount: this.undoCount,
+            undoBonus: undoBonus,
+            undoPenalty: undoPenalty,
+            score: score.toFixed(1),
+            stars: stars
+        });
+        
+        return stars;
     }
     
     // ==================== UI ====================
@@ -1097,6 +1161,7 @@ class LightCycleGame {
         this.isRunning = false;
         this.trailParticles = [];
         this.undoStack = [];
+        this.undoCount = 0; // Track undos for star calculation
         this.showScreen('game-screen');
         this.resizeCanvas();
         
@@ -1116,6 +1181,7 @@ class LightCycleGame {
         this.isRunning = false;
         this.trailParticles = [];
         this.undoStack = [];
+        this.undoCount = 0; // Reset undo counter
         this.stopSimulation();
         document.getElementById('level-message').textContent = this.levels[this.currentLevel].description;
     }
