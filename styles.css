@@ -80,23 +80,23 @@ body {
 
 /* iOS-style slide animations */
 @keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
+    from { transform: translateX(100%); opacity: 0.8; }
     to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes slideOutLeft {
     from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(-30%); opacity: 0; }
+    to { transform: translateX(-30%); opacity: 0.5; }
 }
 
 @keyframes slideInLeft {
-    from { transform: translateX(-30%); opacity: 0; }
+    from { transform: translateX(-30%); opacity: 0.5; }
     to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes slideOutRight {
     from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(100%); opacity: 0.8; }
 }
 
 /* ==================== MAIN MENU ==================== */
@@ -140,9 +140,9 @@ body {
 
 .tagline {
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 300;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.15em;
     margin-bottom: 50px;
     opacity: 0.8;
 }
@@ -150,11 +150,11 @@ body {
 .menu-buttons {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    width: 250px;
+    gap: 12px;
+    width: 260px;
 }
 
-/* Grid Background */
+/* Grid Background Animation */
 .grid-background {
     position: absolute;
     top: 0;
@@ -179,7 +179,7 @@ body {
     padding: 16px 32px;
     font-size: 0.95rem;
     font-weight: 600;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     background: transparent;
     border: 2px solid var(--neon-cyan);
     color: var(--neon-cyan);
@@ -188,29 +188,23 @@ body {
     overflow: hidden;
     transition: all 0.2s var(--spring-smooth);
     text-transform: uppercase;
-    border-radius: 4px;
-    -webkit-appearance: none;
-    appearance: none;
+    border-radius: 8px;
 }
 
-.neon-button:hover {
-    background: rgba(0, 255, 255, 0.1);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-}
-
-.neon-button:active {
-    transform: scale(0.96);
+.neon-button:hover, .neon-button:active {
     background: rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(0, 255, 255, 0.05);
+    transform: scale(0.98);
 }
 
 .neon-button.primary {
-    background: rgba(0, 255, 255, 0.15);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
 }
 
-.neon-button.primary:hover {
-    background: rgba(0, 255, 255, 0.25);
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+.neon-button.primary:hover, .neon-button.primary:active {
+    background: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
 }
 
 .neon-button.danger {
@@ -218,13 +212,9 @@ body {
     color: var(--neon-red);
 }
 
-.neon-button.danger:hover {
-    background: rgba(255, 51, 102, 0.1);
-    box-shadow: 0 0 20px rgba(255, 51, 102, 0.3);
-}
-
-.neon-button.danger:active {
-    background: rgba(255, 51, 102, 0.2);
+.neon-button.danger:hover, .neon-button.danger:active {
+    background: rgba(255, 51, 102, 0.15);
+    box-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
 }
 
 /* ==================== SCREEN HEADER ==================== */
@@ -232,11 +222,11 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 10px 0 24px;
+    padding: 10px 0 25px;
 }
 
 .screen-header h2 {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     font-weight: 500;
     letter-spacing: 0.15em;
     color: var(--neon-cyan);
@@ -250,26 +240,27 @@ body {
     background: transparent;
     border: 2px solid var(--neon-cyan);
     color: var(--neon-cyan);
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s var(--spring-smooth);
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
-.back-btn:active {
-    transform: scale(0.92);
+.back-btn:hover, .back-btn:active {
     background: rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    transform: scale(0.95);
 }
 
-/* ==================== LEVEL GRID ==================== */
+/* ==================== LEVEL SELECT ==================== */
 .level-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
-    padding: 8px;
+    padding: 10px 5px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -281,9 +272,8 @@ body {
 
 .level-tile {
     aspect-ratio: 1;
-    background: rgba(0, 255, 255, 0.03);
+    background: rgba(0, 255, 255, 0.05);
     border: 2px solid var(--grid-line);
-    border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -291,6 +281,7 @@ body {
     cursor: pointer;
     transition: all 0.2s var(--spring-smooth);
     position: relative;
+    border-radius: 12px;
     padding: 8px;
 }
 
@@ -300,7 +291,7 @@ body {
 
 .level-tile:hover {
     border-color: var(--neon-cyan);
-    background: rgba(0, 255, 255, 0.08);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.25);
 }
 
 .level-tile.completed {
@@ -309,28 +300,30 @@ body {
 }
 
 .level-tile.completed:hover {
-    background: rgba(0, 255, 102, 0.12);
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.3);
 }
 
 .level-tile.locked {
     opacity: 0.35;
     cursor: not-allowed;
-    pointer-events: none;
+}
+
+.level-tile.locked:active {
+    transform: none;
 }
 
 .level-tile .level-number {
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: var(--text-primary);
-    line-height: 1;
 }
 
 .level-tile .level-name {
     font-size: 0.55rem;
     color: rgba(0, 255, 255, 0.6);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 4px;
+    letter-spacing: 0.3px;
+    margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -342,36 +335,39 @@ body {
     color: rgba(0, 255, 102, 0.7);
 }
 
+.level-tile.locked .level-name {
+    color: rgba(100, 100, 100, 0.4);
+}
+
 .level-tile .level-stars {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     margin-top: 4px;
-    letter-spacing: 1px;
     color: var(--neon-yellow);
 }
 
-/* ==================== TUTORIAL CONTENT ==================== */
+/* ==================== TUTORIAL / HOW TO PLAY ==================== */
 .tutorial-content {
     display: flex;
     flex-direction: column;
     gap: 20px;
     overflow-y: auto;
-    padding: 8px 0;
+    padding: 10px 0;
     -webkit-overflow-scrolling: touch;
 }
 
 .tutorial-step {
-    background: rgba(0, 255, 255, 0.04);
+    background: rgba(0, 255, 255, 0.05);
     border: 1px solid var(--grid-line);
-    border-radius: 16px;
-    padding: 24px 20px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    border-radius: 16px;
 }
 
 .tutorial-icon {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     margin-bottom: 12px;
 }
 
@@ -379,8 +375,8 @@ body {
     color: var(--neon-cyan);
     font-weight: 500;
     margin-bottom: 8px;
-    letter-spacing: 0.1em;
-    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    font-size: 1rem;
 }
 
 .tutorial-step p {
@@ -401,7 +397,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    background: rgba(0, 255, 255, 0.04);
+    background: rgba(0, 255, 255, 0.05);
     border: 1px solid var(--grid-line);
     border-radius: 12px;
 }
@@ -410,11 +406,11 @@ body {
     font-size: 0.95rem;
 }
 
-/* iOS-style toggle */
+/* iOS-style Toggle */
 .toggle {
     position: relative;
-    width: 51px;
-    height: 31px;
+    width: 56px;
+    height: 32px;
     cursor: pointer;
 }
 
@@ -430,31 +426,31 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--grid-line);
-    border-radius: 31px;
-    transition: all 0.3s var(--spring-smooth);
+    background: rgba(255, 255, 255, 0.15);
+    transition: 0.3s var(--spring-smooth);
+    border-radius: 16px;
 }
 
 .toggle-slider:before {
     position: absolute;
     content: "";
-    height: 27px;
-    width: 27px;
-    left: 2px;
-    bottom: 2px;
-    background: white;
+    height: 26px;
+    width: 26px;
+    left: 3px;
+    bottom: 3px;
+    background: var(--text-primary);
+    transition: 0.3s var(--spring-bounce);
     border-radius: 50%;
-    transition: all 0.3s var(--spring-bounce);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .toggle input:checked + .toggle-slider {
     background: var(--neon-cyan);
-    box-shadow: 0 0 10px var(--neon-cyan);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
 }
 
 .toggle input:checked + .toggle-slider:before {
-    transform: translateX(20px);
+    transform: translateX(24px);
 }
 
 /* ==================== GAME SCREEN ==================== */
@@ -467,7 +463,6 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
-    min-height: 60px;
 }
 
 .level-info {
@@ -490,18 +485,18 @@ body {
     background: transparent;
     border: 2px solid var(--neon-cyan);
     color: var(--neon-cyan);
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     cursor: pointer;
     transition: all 0.2s var(--spring-smooth);
-    border-radius: 8px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .icon-btn:active {
-    transform: scale(0.92);
     background: rgba(0, 255, 255, 0.15);
+    transform: scale(0.95);
 }
 
 #game-area {
@@ -517,7 +512,7 @@ body {
     max-width: 100%;
     max-height: 100%;
     touch-action: none;
-    border-radius: 4px;
+    border-radius: 8px;
     box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
 }
 
@@ -530,7 +525,7 @@ body {
 
 .control-btn {
     flex: 1;
-    padding: 14px 8px;
+    padding: 14px 12px;
     font-size: 0.85rem;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -539,21 +534,22 @@ body {
     color: var(--neon-cyan);
     cursor: pointer;
     transition: all 0.15s var(--spring-smooth);
-    border-radius: 8px;
+    border-radius: 10px;
     text-transform: uppercase;
 }
 
 .control-btn:active {
-    transform: scale(0.96);
+    background: rgba(0, 255, 255, 0.1);
+    transform: scale(0.97);
 }
 
 .control-btn.primary {
-    background: rgba(0, 255, 255, 0.15);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.25);
 }
 
 .control-btn.primary:active {
-    background: rgba(0, 255, 255, 0.25);
+    background: rgba(0, 255, 255, 0.3);
 }
 
 .control-btn:disabled {
@@ -565,7 +561,7 @@ body {
     text-align: center;
     min-height: 24px;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     padding: 8px 0;
     font-weight: 400;
 }
@@ -593,13 +589,12 @@ body {
 .modal-content {
     background: var(--bg-medium);
     border: 2px solid var(--neon-cyan);
-    border-radius: 20px;
-    padding: 40px 32px;
+    padding: 35px 40px;
     text-align: center;
     max-width: 90%;
-    width: 320px;
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.25);
     animation: modal-appear 0.4s var(--spring-bounce);
+    border-radius: 20px;
 }
 
 @keyframes modal-appear {
@@ -615,29 +610,29 @@ body {
 
 .modal-content h2 {
     color: var(--neon-cyan);
-    font-size: 1.6rem;
-    font-weight: 500;
+    font-size: 1.8rem;
+    font-weight: 400;
     letter-spacing: 0.15em;
-    margin-bottom: 16px;
+    margin-bottom: 15px;
     text-shadow: 0 0 20px var(--neon-cyan);
 }
 
 .stars {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     margin: 20px 0;
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .stars .star {
     display: inline-block;
-    animation: star-pop 0.5s var(--spring-bounce) forwards;
+    animation: starPop 0.4s var(--spring-bounce) forwards;
     opacity: 0;
     transform: scale(0);
 }
 
-@keyframes star-pop {
+@keyframes starPop {
     to {
         opacity: 1;
         transform: scale(1);
@@ -646,7 +641,7 @@ body {
 
 .modal-content p {
     color: var(--text-secondary);
-    margin-bottom: 28px;
+    margin-bottom: 25px;
     font-size: 1rem;
 }
 
@@ -657,12 +652,11 @@ body {
 }
 
 .modal-buttons .neon-button {
-    min-width: 110px;
-    padding: 14px 20px;
-    font-size: 0.85rem;
+    min-width: 120px;
+    padding: 14px 24px;
 }
 
-/* ==================== CONFETTI ==================== */
+/* ==================== CONFETTI CANVAS ==================== */
 #confetti-canvas {
     position: absolute;
     top: 0;
@@ -677,58 +671,59 @@ body {
     position: fixed;
     bottom: calc(env(safe-area-inset-bottom, 20px) + 100px);
     left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background: rgba(30, 30, 60, 0.95);
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(0, 0, 0, 0.85);
     color: var(--text-primary);
     padding: 14px 24px;
-    border-radius: 100px;
+    border-radius: 25px;
     font-size: 0.9rem;
     font-weight: 500;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    z-index: 2000;
     opacity: 0;
     transition: all 0.3s var(--spring-bounce);
-    border: 1px solid rgba(0, 255, 255, 0.2);
+    z-index: 2000;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    max-width: 85%;
 }
 
 .toast.show {
-    transform: translateX(-50%) translateY(0);
     opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 
 /* ==================== CONTEXT MENU ==================== */
 .context-menu {
     position: fixed;
-    background: rgba(20, 20, 45, 0.98);
+    background: rgba(20, 20, 40, 0.95);
     border: 1px solid var(--neon-cyan);
     border-radius: 12px;
     padding: 8px 0;
     z-index: 1500;
     min-width: 180px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    animation: context-appear 0.2s var(--spring-bounce);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    animation: contextAppear 0.2s var(--spring-bounce);
 }
 
-@keyframes context-appear {
+@keyframes contextAppear {
     from {
-        transform: scale(0.9);
         opacity: 0;
+        transform: scale(0.9);
     }
     to {
-        transform: scale(1);
         opacity: 1;
+        transform: scale(1);
     }
 }
 
 .context-item {
     display: block;
     width: 100%;
-    padding: 12px 16px;
-    background: none;
+    padding: 12px 20px;
+    background: transparent;
     border: none;
     color: var(--text-primary);
     font-size: 0.9rem;
@@ -757,10 +752,10 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 2000;
-    opacity: 0;
-    transition: opacity 0.2s;
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
+    opacity: 0;
+    transition: opacity 0.2s;
 }
 
 .confirm-dialog.active {
@@ -769,35 +764,35 @@ body {
 
 .confirm-content {
     background: var(--bg-medium);
-    border: 2px solid var(--grid-line);
+    border: 2px solid var(--neon-cyan);
+    padding: 30px;
     border-radius: 16px;
-    padding: 28px 24px;
+    text-align: center;
     max-width: 85%;
-    width: 300px;
     animation: modal-appear 0.3s var(--spring-bounce);
 }
 
 .confirm-content h3 {
     color: var(--text-primary);
     font-size: 1.2rem;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-weight: 500;
+    margin-bottom: 10px;
 }
 
 .confirm-content p {
     color: var(--text-secondary);
     font-size: 0.9rem;
-    margin-bottom: 24px;
+    margin-bottom: 25px;
 }
 
 .confirm-buttons {
     display: flex;
     gap: 12px;
+    justify-content: center;
 }
 
 .confirm-buttons .neon-button {
-    flex: 1;
-    padding: 12px 16px;
+    padding: 12px 24px;
     font-size: 0.85rem;
 }
 
@@ -809,7 +804,7 @@ body {
     
     .tagline {
         margin-bottom: 30px;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     .menu-buttons {
@@ -825,18 +820,22 @@ body {
     }
     
     .control-btn {
-        padding: 12px 6px;
+        padding: 12px 10px;
         font-size: 0.8rem;
     }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 350px) {
     .game-title {
-        font-size: 2.4rem;
+        font-size: 2rem;
     }
     
     .level-grid {
         grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .modal-content {
+        padding: 25px 20px;
     }
     
     .modal-buttons {
@@ -848,35 +847,21 @@ body {
     }
 }
 
-@media (min-width: 768px) {
-    .level-grid {
-        grid-template-columns: repeat(5, 1fr);
+/* Large screens / tablets */
+@media (min-width: 500px) {
+    #game-container {
+        border-radius: 20px;
+        margin: 20px;
+        height: calc(100% - 40px);
+        box-shadow: 0 0 50px rgba(0, 255, 255, 0.15);
     }
 }
 
-/* ==================== ACCESSIBILITY ==================== */
+/* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
-}
-
-/* ==================== SCROLLBAR (for desktop) ==================== */
-::-webkit-scrollbar {
-    width: 4px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.3);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 255, 255, 0.5);
 }
