@@ -129,6 +129,27 @@
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
+                <div class="setting-item">
+                    <span>Colorblind Mode</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="colorblind-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Time Attack Mode</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="time-attack-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Keyboard Shortcuts</h3>
+                    <p class="shortcut-hint">Space/Enter: Run • U/Z: Undo • C: Clear • R: Reset</p>
+                    <p class="shortcut-hint">1-9: Select outlet • Escape: Back • D: Daily</p>
+                </div>
+                
                 <button id="reset-progress-btn" class="neon-button danger" style="margin-top: 20px;">RESET PROGRESS</button>
             </div>
         </div>
@@ -139,8 +160,12 @@
                 <button id="game-back-btn" class="back-btn">←</button>
                 <div class="level-info">
                     <span id="current-level-name">Level 1</span>
+                    <span id="timer-display" class="timer-display"></span>
                 </div>
-                <button id="reset-level-btn" class="icon-btn">↻</button>
+                <div class="header-actions">
+                    <button id="share-level-btn" class="icon-btn" title="Share Level">↗</button>
+                    <button id="reset-level-btn" class="icon-btn">↻</button>
+                </div>
             </div>
             <div id="game-area">
                 <canvas id="game-canvas"></canvas>
