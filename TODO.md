@@ -45,7 +45,7 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ---
 
-### 3. [ ] Multi-Train Station Requirements
+### 3. [x] Multi-Train Station Requirements
 **Description:** Stations can require multiple trains to complete (e.g., "needs 3 green cycles").
 
 **Details:**
