@@ -2,13 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Light Cycle">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0a0a1a">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    
     <title>Light Cycle - Tron Puzzle Game</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a1a' width='100' height='100'/><path d='M20 50 L50 20 L80 50 L50 80 Z' fill='none' stroke='%2300ffff' stroke-width='4'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230a0a1a' width='180' height='180' rx='40'/><path d='M36 90 L90 36 L144 90 L90 144 Z' fill='none' stroke='%2300ffff' stroke-width='8'/></svg>">
+    
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
 </head>
 <body>
     <div id="game-container">
@@ -47,9 +62,14 @@
             </div>
             <div class="tutorial-content">
                 <div class="tutorial-step">
+                    <div class="tutorial-icon">👆</div>
+                    <h3>Swipe to Draw</h3>
+                    <p>Touch an outlet (▶) and swipe across the grid to draw your path. Lift your finger to finish.</p>
+                </div>
+                <div class="tutorial-step">
                     <div class="tutorial-icon">🔲</div>
-                    <h3>Draw Paths</h3>
-                    <p>Click on grid cells to draw paths from outlets to stations. Each click adds a segment to your path.</p>
+                    <h3>Tap to Extend</h3>
+                    <p>Or tap cells one by one to build your path. Tap back to undo segments.</p>
                 </div>
                 <div class="tutorial-step">
                     <div class="tutorial-icon">🎨</div>
@@ -59,12 +79,17 @@
                 <div class="tutorial-step">
                     <div class="tutorial-icon">🔀</div>
                     <h3>Mix Colors</h3>
-                    <p>When cycles merge, their colors combine: Red + Blue = Purple, Red + Yellow = Orange, etc.</p>
+                    <p>When cycles merge, colors combine: Red + Blue = Purple, Red + Yellow = Orange, etc.</p>
                 </div>
                 <div class="tutorial-step">
                     <div class="tutorial-icon">⚡</div>
                     <h3>Special Tiles</h3>
-                    <p>Use splitters to branch paths, and color changers to transform cycle colors.</p>
+                    <p>Use splitters (◇) to branch paths, and color changers (⬡) to transform cycle colors.</p>
+                </div>
+                <div class="tutorial-step">
+                    <div class="tutorial-icon">↩️</div>
+                    <h3>Quick Undo</h3>
+                    <p>Long-press on the grid for quick actions. Swipe right from any screen to go back.</p>
                 </div>
             </div>
         </div>
@@ -91,13 +116,20 @@
                     </label>
                 </div>
                 <div class="setting-item">
+                    <span>Swipe Drawing</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="swipe-mode-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
                     <span>Show Grid Numbers</span>
                     <label class="toggle">
                         <input type="checkbox" id="grid-numbers-toggle">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                <button id="reset-progress-btn" class="neon-button danger">RESET PROGRESS</button>
+                <button id="reset-progress-btn" class="neon-button danger" style="margin-top: 20px;">RESET PROGRESS</button>
             </div>
         </div>
 
@@ -129,7 +161,7 @@
                 <p id="complete-message">Perfect routing!</p>
                 <div class="modal-buttons">
                     <button id="replay-btn" class="neon-button">REPLAY</button>
-                    <button id="next-level-btn" class="neon-button primary">NEXT LEVEL</button>
+                    <button id="next-level-btn" class="neon-button primary">NEXT</button>
                 </div>
             </div>
             <canvas id="confetti-canvas"></canvas>
