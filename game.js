@@ -223,7 +223,35 @@ class LightCycleGame {
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 4, delay: 300 }],
               stations: [{ id: 's1', x: 7, y: 0, color: 'cyan' }, { id: 's2', x: 7, y: 2, color: 'cyan' }, { id: 's3', x: 7, y: 5, color: 'cyan' }, { id: 's4', x: 7, y: 7, color: 'cyan' }],
               obstacles: [{ x: 4, y: 3 }, { x: 4, y: 4 }],
-              splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }, { x: 2, y: 0, directions: ['right', 'down'] }, { x: 4, y: 5, directions: ['right', 'down'] }], colorChangers: [] }
+              splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }, { x: 2, y: 0, directions: ['right', 'down'] }, { x: 4, y: 5, directions: ['right', 'down'] }], colorChangers: [] },
+            // NEW: Multi-train station requirement levels
+            { id: 23, name: "Fill 'Er Up", description: "Station needs 2 trains to complete!", gridSize: 6,
+              par: 8, undoBonus: 1,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 2, delay: 400 }],
+              stations: [{ id: 's1', x: 5, y: 2, color: 'cyan', required: 2 }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 24, name: "Split & Collect", description: "Fill both stations with multiple trains", gridSize: 7,
+              par: 12, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 3, color: 'magenta', count: 4, delay: 350 }],
+              stations: [{ id: 's1', x: 6, y: 1, color: 'magenta', required: 2 }, { id: 's2', x: 6, y: 5, color: 'magenta', required: 2 }],
+              obstacles: [],
+              splitters: [{ x: 3, y: 3, directions: ['up', 'down'] }], colorChangers: [] },
+            { id: 25, name: "Convergence Point", description: "Multiple outlets feed one hungry station", gridSize: 7,
+              par: 14, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 3, color: 'cyan' }, { id: 'o3', x: 0, y: 5, color: 'cyan' }],
+              stations: [{ id: 's1', x: 6, y: 3, color: 'cyan', required: 3 }],
+              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
+            { id: 26, name: "Color Collection", description: "Mix colors to fill the station", gridSize: 7,
+              par: 14, undoBonus: 3,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red', count: 2, delay: 500 }, { id: 'o2', x: 0, y: 5, color: 'blue', count: 2, delay: 500 }],
+              stations: [{ id: 's1', x: 6, y: 3, color: 'purple', required: 2 }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 27, name: "Demand & Supply", description: "Match train counts to station demands", gridSize: 8,
+              par: 20, undoBonus: 4,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 3, delay: 300 }, { id: 'o2', x: 0, y: 5, color: 'magenta', count: 2, delay: 400 }],
+              stations: [{ id: 's1', x: 7, y: 1, color: 'cyan', required: 2 }, { id: 's2', x: 7, y: 4, color: 'cyan', required: 1 }, { id: 's3', x: 7, y: 6, color: 'magenta', required: 2 }],
+              obstacles: [{ x: 4, y: 3 }],
+              splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }], colorChangers: [] }
         ];
     }
     
@@ -1544,6 +1572,7 @@ class LightCycleGame {
         this.isRunning = true;
         this.cycles = [];
         this.pendingCycles = []; // Cycles waiting to be released
+        this.stationArrivals = {}; // Track arrivals for multi-train station requirements
         
         // Create cycles for each outlet, including multi-train support
         level.outlets.forEach(outlet => {
@@ -1630,6 +1659,15 @@ class LightCycleGame {
                     if (station.color === cycle.color) {
                         cycle.active = false;
                         cycle.success = true;
+                        cycle.arrivedAtStation = station.id;
+                        
+                        // Track station arrivals for multi-train requirements
+                        if (!this.stationArrivals) this.stationArrivals = {};
+                        if (!this.stationArrivals[station.id]) this.stationArrivals[station.id] = 0;
+                        this.stationArrivals[station.id]++;
+                        
+                        // Visual/audio feedback for arrival
+                        this.hapticFeedback('light');
                     } else {
                         cycle.active = false;
                         anyFailed = true;
@@ -1713,6 +1751,7 @@ class LightCycleGame {
     
     finishSimulation(failed) {
         this.isRunning = false;
+        const level = this.levels[this.currentLevel];
         
         if (failed) {
             this.playSound('fail');
@@ -1720,16 +1759,37 @@ class LightCycleGame {
             this.showToast('Some cycles didn\'t reach their stations!');
         } else {
             const allSuccess = this.cycles.every(c => c.success || c.merged);
-            if (allSuccess) {
+            
+            // Check if all stations met their requirements
+            let stationsMet = true;
+            if (allSuccess && level && level.stations) {
+                for (const station of level.stations) {
+                    const required = station.required || 1;
+                    const arrived = (this.stationArrivals && this.stationArrivals[station.id]) || 0;
+                    if (arrived < required) {
+                        stationsMet = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (allSuccess && stationsMet) {
                 this.playSound('success');
                 this.hapticFeedback('success');
                 this.levelComplete();
+            } else if (allSuccess && !stationsMet) {
+                this.playSound('fail');
+                this.hapticFeedback('fail');
+                this.showToast('Stations need more trains!');
             } else {
                 this.playSound('fail');
                 this.hapticFeedback('fail');
                 this.showToast('Try again!');
             }
         }
+        
+        // Clear station arrivals for next attempt
+        this.stationArrivals = {};
     }
     
     stopSimulation() {
@@ -2727,6 +2787,8 @@ class LightCycleGame {
             const cy = station.y * this.cellSize + this.cellSize / 2;
             const size = this.cellSize * 0.35;
             const color = this.colors[station.color] || '#00ffff';
+            const required = station.required || 1;
+            const arrived = (this.stationArrivals && this.stationArrivals[station.id]) || 0;
             
             ctx.shadowColor = color;
             ctx.shadowBlur = 15 * pulse;
@@ -2753,6 +2815,53 @@ class LightCycleGame {
             ctx.fill();
             ctx.globalAlpha = 1;
             ctx.shadowBlur = 0;
+            
+            // Multi-train station indicator (show required count if > 1)
+            if (required > 1) {
+                // Draw required count badge
+                const badgeX = cx + size * 0.8;
+                const badgeY = cy - size * 0.8;
+                const badgeSize = this.cellSize * 0.2;
+                
+                // Badge background
+                ctx.fillStyle = '#0a0a1a';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(badgeX, badgeY, badgeSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Badge text showing arrived/required during simulation, or just required otherwise
+                ctx.fillStyle = color;
+                ctx.font = `bold ${badgeSize * 1.0}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                if (this.isRunning && arrived > 0) {
+                    // Show progress during simulation
+                    ctx.fillText(`${arrived}/${required}`, badgeX, badgeY);
+                } else {
+                    ctx.fillText(`×${required}`, badgeX, badgeY);
+                }
+                
+                // Show arrival progress rings during simulation
+                if (this.isRunning && arrived > 0) {
+                    const ringRadius = size * 1.3;
+                    const segmentAngle = (Math.PI * 2) / required;
+                    
+                    for (let i = 0; i < required; i++) {
+                        const startAngle = -Math.PI / 2 + (i * segmentAngle) + 0.05;
+                        const endAngle = startAngle + segmentAngle - 0.1;
+                        
+                        ctx.strokeStyle = i < arrived ? color : 'rgba(255,255,255,0.2)';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, ringRadius, startAngle, endAngle);
+                        ctx.stroke();
+                    }
+                }
+            }
             
             // Colorblind mode: add letter label
             if (this.settings.colorblindMode) {
