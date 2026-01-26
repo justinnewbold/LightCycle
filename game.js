@@ -200,7 +200,30 @@ class LightCycleGame {
               par: 16, undoBonus: 3,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'blue' }],
               stations: [{ id: 's1', x: 6, y: 3, color: 'purple' }, { id: 's2', x: 3, y: 6, color: 'red' }],
-              obstacles: [], splitters: [], colorChangers: [] }
+              obstacles: [], splitters: [], colorChangers: [] },
+            // NEW: Multi-train outlet levels
+            { id: 19, name: "Double Duty", description: "One outlet releases 2 trains!", gridSize: 6,
+              par: 8, undoBonus: 1,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 2, delay: 400 }],
+              stations: [{ id: 's1', x: 5, y: 1, color: 'cyan' }, { id: 's2', x: 5, y: 3, color: 'cyan' }],
+              obstacles: [], splitters: [{ x: 3, y: 2, directions: ['up', 'down'] }], colorChangers: [] },
+            { id: 20, name: "Triple Threat Express", description: "3 trains, 3 destinations", gridSize: 7,
+              par: 14, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 3, color: 'magenta', count: 3, delay: 350 }],
+              stations: [{ id: 's1', x: 6, y: 1, color: 'magenta' }, { id: 's2', x: 6, y: 3, color: 'magenta' }, { id: 's3', x: 6, y: 5, color: 'magenta' }],
+              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }],
+              splitters: [{ x: 2, y: 3, directions: ['up', 'right'] }, { x: 2, y: 1, directions: ['right', 'down'] }], colorChangers: [] },
+            { id: 21, name: "Timing is Everything", description: "Coordinate multiple train waves", gridSize: 7,
+              par: 16, undoBonus: 3,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red', count: 2, delay: 600 }, { id: 'o2', x: 0, y: 5, color: 'blue', count: 2, delay: 600 }],
+              stations: [{ id: 's1', x: 6, y: 2, color: 'red' }, { id: 's2', x: 6, y: 4, color: 'blue' }, { id: 's3', x: 6, y: 3, color: 'purple' }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 22, name: "Train Swarm", description: "Control the chaos!", gridSize: 8,
+              par: 20, undoBonus: 4,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 4, delay: 300 }],
+              stations: [{ id: 's1', x: 7, y: 0, color: 'cyan' }, { id: 's2', x: 7, y: 2, color: 'cyan' }, { id: 's3', x: 7, y: 5, color: 'cyan' }, { id: 's4', x: 7, y: 7, color: 'cyan' }],
+              obstacles: [{ x: 4, y: 3 }, { x: 4, y: 4 }],
+              splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }, { x: 2, y: 0, directions: ['right', 'down'] }, { x: 4, y: 5, directions: ['right', 'down'] }], colorChangers: [] }
         ];
     }
     
@@ -1520,15 +1543,38 @@ class LightCycleGame {
         
         this.isRunning = true;
         this.cycles = [];
+        this.pendingCycles = []; // Cycles waiting to be released
         
+        // Create cycles for each outlet, including multi-train support
         level.outlets.forEach(outlet => {
             const path = this.paths[outlet.id];
             if (path && path.length > 1) {
-                this.cycles.push({
-                    outletId: outlet.id, // Track which outlet this cycle is from
-                    color: outlet.color, path: [...path], progress: 0,
-                    active: true, merged: false, trail: [], success: false
-                });
+                const trainCount = outlet.count || 1;
+                const trainDelay = outlet.delay || 500; // ms between trains
+                
+                for (let i = 0; i < trainCount; i++) {
+                    const cycleData = {
+                        outletId: outlet.id,
+                        color: outlet.color,
+                        path: [...path],
+                        progress: 0,
+                        active: false, // Start inactive, will be activated on release
+                        merged: false,
+                        trail: [],
+                        success: false,
+                        trainIndex: i, // Which train in the sequence
+                        releaseTime: i * trainDelay // When to release this train (ms from start)
+                    };
+                    
+                    if (i === 0) {
+                        // First train starts immediately
+                        cycleData.active = true;
+                        this.cycles.push(cycleData);
+                    } else {
+                        // Subsequent trains wait
+                        this.pendingCycles.push(cycleData);
+                    }
+                }
             }
         });
         
@@ -1543,11 +1589,31 @@ class LightCycleGame {
         const speed = 0.003;
         let allFinished = true, anyFailed = false;
         
+        // Check for pending cycles to release
+        for (let i = this.pendingCycles.length - 1; i >= 0; i--) {
+            const pending = this.pendingCycles[i];
+            if (elapsed >= pending.releaseTime) {
+                pending.active = true;
+                pending.startTime = elapsed; // Track when this cycle started
+                this.cycles.push(pending);
+                this.pendingCycles.splice(i, 1);
+                this.playSound('path');
+                this.hapticFeedback('light');
+            }
+        }
+        
+        // Still have pending cycles? Not finished yet
+        if (this.pendingCycles.length > 0) {
+            allFinished = false;
+        }
+        
         this.cycles.forEach(cycle => {
             if (!cycle.active) return;
             allFinished = false;
             
-            cycle.progress = elapsed * speed;
+            // Calculate progress based on when this cycle was released
+            const cycleElapsed = elapsed - (cycle.releaseTime || 0);
+            cycle.progress = cycleElapsed * speed;
             const pathIndex = Math.floor(cycle.progress);
             
             if (pathIndex >= cycle.path.length - 1) {
@@ -1669,6 +1735,7 @@ class LightCycleGame {
     stopSimulation() {
         this.isRunning = false;
         this.cycles = [];
+        this.pendingCycles = [];
     }
     
     // ==================== LEVEL COMPLETION ====================
@@ -2568,6 +2635,7 @@ class LightCycleGame {
             const cy = outlet.y * this.cellSize + this.cellSize / 2;
             const size = this.cellSize * 0.35;
             const color = this.colors[outlet.color] || '#00ffff';
+            const trainCount = outlet.count || 1;
             
             ctx.shadowColor = color;
             ctx.shadowBlur = 20 * pulse;
@@ -2586,6 +2654,45 @@ class LightCycleGame {
             ctx.closePath();
             ctx.fill();
             ctx.shadowBlur = 0;
+            
+            // Multi-train indicator (show count if > 1)
+            if (trainCount > 1) {
+                // Draw train count badge
+                const badgeX = cx + size * 0.7;
+                const badgeY = cy - size * 0.7;
+                const badgeSize = this.cellSize * 0.18;
+                
+                // Badge background
+                ctx.fillStyle = '#0a0a1a';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(badgeX, badgeY, badgeSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Badge number
+                ctx.fillStyle = color;
+                ctx.font = `bold ${badgeSize * 1.2}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(trainCount.toString(), badgeX, badgeY);
+                
+                // Show stacked train indicators
+                const stackOffset = size * 0.15;
+                for (let i = 1; i < Math.min(trainCount, 3); i++) {
+                    ctx.strokeStyle = color;
+                    ctx.globalAlpha = 0.3 + (0.2 * i);
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(
+                        cx - size + (i * stackOffset),
+                        cy - size - (i * stackOffset),
+                        size * 2,
+                        size * 2
+                    );
+                }
+                ctx.globalAlpha = 1;
+            }
             
             // Colorblind mode: add letter label
             if (this.settings.colorblindMode) {
