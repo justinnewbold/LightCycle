@@ -62,8 +62,8 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ---
 
-### 4. [ ] Timing Loops for Delays
-**Description:** Allow circular paths that delay trains for synchronization.
+### 4. [x] Delayed Start Timing
+**Description:** Outlets can have configurable start delays before releasing trains.
 
 **Details:**
 - Paths can loop back on themselves
