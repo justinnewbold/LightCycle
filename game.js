@@ -251,7 +251,34 @@ class LightCycleGame {
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 3, delay: 300 }, { id: 'o2', x: 0, y: 5, color: 'magenta', count: 2, delay: 400 }],
               stations: [{ id: 's1', x: 7, y: 1, color: 'cyan', required: 2 }, { id: 's2', x: 7, y: 4, color: 'cyan', required: 1 }, { id: 's3', x: 7, y: 6, color: 'magenta', required: 2 }],
               obstacles: [{ x: 4, y: 3 }],
-              splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }], colorChangers: [] }
+              splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }], colorChangers: [] },
+            // NEW: Delayed start timing levels
+            { id: 28, name: "Wait For It", description: "Some outlets have a delayed start!", gridSize: 6,
+              par: 10, undoBonus: 1,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 4, color: 'magenta', startDelay: 1000 }],
+              stations: [{ id: 's1', x: 5, y: 2, color: 'cyan' }, { id: 's2', x: 5, y: 3, color: 'magenta' }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 29, name: "Staggered Start", description: "Time your crossings carefully", gridSize: 7,
+              par: 14, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'blue', startDelay: 800 }, { id: 'o3', x: 0, y: 5, color: 'yellow', startDelay: 1600 }],
+              stations: [{ id: 's1', x: 6, y: 5, color: 'red' }, { id: 's2', x: 6, y: 3, color: 'blue' }, { id: 's3', x: 6, y: 1, color: 'yellow' }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 30, name: "Merge Window", description: "Delay creates the perfect merge timing", gridSize: 7,
+              par: 12, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 5, color: 'blue', startDelay: 600 }],
+              stations: [{ id: 's1', x: 6, y: 3, color: 'purple' }],
+              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
+            { id: 31, name: "Wave Coordination", description: "Multiple delayed waves must synchronize", gridSize: 8,
+              par: 18, undoBonus: 3,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 2, delay: 400 }, { id: 'o2', x: 0, y: 5, color: 'cyan', count: 2, delay: 400, startDelay: 1200 }],
+              stations: [{ id: 's1', x: 7, y: 1, color: 'cyan', required: 2 }, { id: 's2', x: 7, y: 6, color: 'cyan', required: 2 }],
+              obstacles: [{ x: 4, y: 3 }, { x: 4, y: 4 }],
+              splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }, { x: 2, y: 5, directions: ['right', 'down'] }], colorChangers: [] },
+            { id: 32, name: "Precision Timing", description: "Every millisecond counts!", gridSize: 8,
+              par: 16, undoBonus: 4,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red', startDelay: 0 }, { id: 'o2', x: 0, y: 4, color: 'blue', startDelay: 500 }, { id: 'o3', x: 0, y: 7, color: 'yellow', startDelay: 1000 }],
+              stations: [{ id: 's1', x: 7, y: 3, color: 'white' }],
+              obstacles: [{ x: 4, y: 0 }, { x: 4, y: 7 }], splitters: [], colorChangers: [] }
         ];
     }
     
@@ -1580,8 +1607,12 @@ class LightCycleGame {
             if (path && path.length > 1) {
                 const trainCount = outlet.count || 1;
                 const trainDelay = outlet.delay || 500; // ms between trains
+                const startDelay = outlet.startDelay || 0; // ms before first train releases
                 
                 for (let i = 0; i < trainCount; i++) {
+                    // Release time = initial start delay + (train index * delay between trains)
+                    const releaseTime = startDelay + (i * trainDelay);
+                    
                     const cycleData = {
                         outletId: outlet.id,
                         color: outlet.color,
@@ -1592,11 +1623,11 @@ class LightCycleGame {
                         trail: [],
                         success: false,
                         trainIndex: i, // Which train in the sequence
-                        releaseTime: i * trainDelay // When to release this train (ms from start)
+                        releaseTime: releaseTime // When to release this train (ms from start)
                     };
                     
-                    if (i === 0) {
-                        // First train starts immediately
+                    if (releaseTime === 0) {
+                        // No delay - start immediately
                         cycleData.active = true;
                         this.cycles.push(cycleData);
                     } else {
@@ -2752,6 +2783,69 @@ class LightCycleGame {
                     );
                 }
                 ctx.globalAlpha = 1;
+            }
+            
+            // Start delay indicator (show clock icon if startDelay > 0)
+            const startDelay = outlet.startDelay || 0;
+            if (startDelay > 0) {
+                const delayBadgeX = cx - size * 0.8;
+                const delayBadgeY = cy - size * 0.8;
+                const delayBadgeSize = this.cellSize * 0.15;
+                
+                // Clock background
+                ctx.fillStyle = '#0a0a1a';
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(delayBadgeX, delayBadgeY, delayBadgeSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Clock hands
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(delayBadgeX, delayBadgeY);
+                ctx.lineTo(delayBadgeX, delayBadgeY - delayBadgeSize * 0.6);
+                ctx.moveTo(delayBadgeX, delayBadgeY);
+                ctx.lineTo(delayBadgeX + delayBadgeSize * 0.4, delayBadgeY);
+                ctx.stroke();
+                
+                // Show delay value below outlet during hover or always if significant
+                if (startDelay >= 500) {
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.font = `${this.cellSize * 0.12}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(`${(startDelay / 1000).toFixed(1)}s`, cx, cy + size + 2);
+                }
+                
+                // Show countdown during simulation
+                if (this.isRunning && this.simulationStartTime) {
+                    const elapsed = Date.now() - this.simulationStartTime;
+                    const remaining = startDelay - elapsed;
+                    
+                    if (remaining > 0) {
+                        // Draw countdown overlay
+                        ctx.fillStyle = 'rgba(10, 10, 26, 0.7)';
+                        ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
+                        
+                        // Countdown text
+                        ctx.fillStyle = '#ffaa00';
+                        ctx.font = `bold ${size * 1.2}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText((remaining / 1000).toFixed(1), cx, cy);
+                        
+                        // Progress ring
+                        const progress = 1 - (remaining / startDelay);
+                        ctx.strokeStyle = '#ffaa00';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, size * 1.2, -Math.PI / 2, -Math.PI / 2 + (progress * Math.PI * 2));
+                        ctx.stroke();
+                    }
+                }
             }
             
             // Colorblind mode: add letter label
