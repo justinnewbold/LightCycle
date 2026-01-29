@@ -345,6 +345,53 @@ body {
     color: var(--neon-yellow);
 }
 
+/* Level Pack Tiles */
+.level-tile.level-pack {
+    border-width: 3px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.1) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.level-tile.level-pack::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--pack-color, #00ffff) 0%, transparent 70%);
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.level-tile.level-pack:hover {
+    border-color: var(--pack-color, #00ffff);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--pack-color, #00ffff) 40%, transparent);
+}
+
+.level-tile.level-pack .pack-desc {
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.level-tile.back-button {
+    border-color: #666;
+    background: rgba(100, 100, 100, 0.1);
+}
+
+.level-tile.back-button:hover {
+    border-color: #888;
+    box-shadow: 0 0 10px rgba(150, 150, 150, 0.2);
+}
+
+.level-tile.back-button .level-number {
+    font-size: 1.8rem;
+}
+
 /* ==================== TUTORIAL / HOW TO PLAY ==================== */
 .tutorial-content {
     display: flex;
