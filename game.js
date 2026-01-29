@@ -41,6 +41,11 @@ class LightCycleGame {
         this.swipeThreshold = 10;
         this.isSwipeDrawing = false;
         
+        // Speed control
+        this.speedLevel = 1; // 0=slow, 1=normal, 2=fast
+        this.speedMultipliers = [0.5, 1, 2];
+        this.speedLabels = ['🐢', '▶️', '⏩'];
+        
         // Long press detection
         this.longPressTimer = null;
         this.longPressDuration = 400;
@@ -1271,6 +1276,18 @@ class LightCycleGame {
                         e.preventDefault();
                         this.resetLevel();
                         break;
+                    case 'e':
+                        e.preventDefault();
+                        this.toggleEraserMode();
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        this.useHint();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        this.cycleSpeed();
+                        break;
                     case ' ':
                     case 'Enter':
                         e.preventDefault();
@@ -1387,7 +1404,12 @@ class LightCycleGame {
         
         document.getElementById('run-btn').addEventListener('click', (e) => {
             this.animateButtonPress(e.target);
-            this.playSound('click'); this.hapticFeedback('medium'); this.runSimulation();
+            this.playSound('click'); this.hapticFeedback('medium');
+            if (this.isRunning) {
+                this.stopSimulation();
+            } else {
+                this.runSimulation();
+            }
         });
         document.getElementById('undo-btn').addEventListener('click', (e) => {
             this.animateButtonPress(e.target);
@@ -1409,6 +1431,21 @@ class LightCycleGame {
             this.animateButtonPress(e.target);
             this.useHint();
         });
+        
+        // Speed toggle button
+        document.getElementById('speed-btn').addEventListener('click', (e) => {
+            this.animateButtonPress(e.target);
+            this.cycleSpeed();
+        });
+        
+        // Reset level button (in toolbar)
+        const resetBtn2 = document.getElementById('reset-level-btn2');
+        if (resetBtn2) {
+            resetBtn2.addEventListener('click', (e) => {
+                this.animateButtonPress(e.target);
+                this.playSound('click'); this.hapticFeedback('medium'); this.resetLevel();
+            });
+        }
         
         document.getElementById('reset-level-btn').addEventListener('click', (e) => {
             this.animateButtonPress(e.currentTarget);
@@ -2406,6 +2443,7 @@ class LightCycleGame {
         this.recalculateJunctions();
         
         this.isRunning = true;
+        this.updateRunButton();
         this.cycles = [];
         this.pendingCycles = []; // Cycles waiting to be released
         this.stationArrivals = {}; // Track arrivals for multi-train station requirements
@@ -2456,7 +2494,8 @@ class LightCycleGame {
         if (!this.isRunning) return;
         
         const elapsed = Date.now() - this.simulationStartTime;
-        const speed = 0.003;
+        const baseSpeed = 0.003;
+        const speed = baseSpeed * this.speedMultipliers[this.speedLevel];
         let allFinished = true, anyFailed = false;
         
         // Check for pending cycles to release
@@ -2761,6 +2800,37 @@ class LightCycleGame {
         this.isRunning = false;
         this.cycles = [];
         this.pendingCycles = [];
+        this.updateRunButton();
+    }
+    
+    cycleSpeed() {
+        this.speedLevel = (this.speedLevel + 1) % 3;
+        this.playSound('click');
+        this.hapticFeedback('light');
+        this.updateSpeedButton();
+        const labels = ['Slow', 'Normal', 'Fast'];
+        this.showToast(`Speed: ${labels[this.speedLevel]}`);
+    }
+    
+    updateSpeedButton() {
+        const btn = document.getElementById('speed-btn');
+        if (btn) {
+            btn.textContent = this.speedLabels[this.speedLevel];
+            btn.classList.toggle('active', this.speedLevel !== 1);
+        }
+    }
+    
+    updateRunButton() {
+        const btn = document.getElementById('run-btn');
+        if (btn) {
+            if (this.isRunning) {
+                btn.innerHTML = '⏹ STOP';
+                btn.classList.add('running');
+            } else {
+                btn.innerHTML = '▶ RUN';
+                btn.classList.remove('running');
+            }
+        }
     }
     
     // ==================== LEVEL COMPLETION ====================
@@ -3115,6 +3185,8 @@ class LightCycleGame {
         this.updateDrawModeIndicator();
         this.updateEraserButton();
         this.updateHintButton();
+        this.updateSpeedButton();
+        this.updateRunButton();
         
         // Start timer for time attack or daily mode
         if (this.settings.timeAttackMode || level.isDaily) {
