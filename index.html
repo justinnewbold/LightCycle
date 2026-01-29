@@ -38,6 +38,7 @@
                 <div class="menu-buttons">
                     <button id="play-btn" class="neon-button primary">PLAY</button>
                     <button id="levels-btn" class="neon-button">LEVELS</button>
+                    <button id="community-btn" class="neon-button">🌍 COMMUNITY</button>
                     <button id="how-to-play-btn" class="neon-button">HOW TO PLAY</button>
                     <button id="settings-btn" class="neon-button">SETTINGS</button>
                 </div>
@@ -91,6 +92,23 @@
                     <h3>Quick Undo</h3>
                     <p>Long-press on the grid for quick actions. Swipe right from any screen to go back.</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Community Levels -->
+        <div id="community-screen" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" data-target="main-menu">←</button>
+                <h2>🌍 COMMUNITY LEVELS</h2>
+            </div>
+            <div class="community-tabs">
+                <button class="community-tab active" data-sort="newest">Newest</button>
+                <button class="community-tab" data-sort="popular">Popular</button>
+                <button class="community-tab" data-sort="liked">Most Liked</button>
+            </div>
+            <p class="community-hint">Tap to play • Long press to like ❤️</p>
+            <div id="community-levels-grid" class="level-grid">
+                <!-- Community levels load here -->
             </div>
         </div>
 
@@ -180,6 +198,7 @@
                     <span id="timer-display" class="timer-display"></span>
                 </div>
                 <div class="header-actions">
+                    <button id="publish-level-btn" class="icon-btn" title="Publish to Community">🌍</button>
                     <button id="share-level-btn" class="icon-btn" title="Share Level">↗</button>
                     <button id="reset-level-btn" class="icon-btn">↻</button>
                 </div>
@@ -213,4 +232,5 @@
     <script src="game.js"></script>
 </body>
 </html>
+
 
