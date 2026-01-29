@@ -48,6 +48,21 @@ class LightCycleGame {
         this.invalidMoveFlash = null; // Flash red on invalid move
         this.touchFeedbackCell = null; // Currently touched cell for highlight
         
+        // Cinematic Replay system
+        this.cinematicReplay = {
+            active: false,
+            phase: 'idle', // 'drawing', 'running', 'finale', 'idle'
+            pathIndex: 0,
+            segmentIndex: 0,
+            timer: 0,
+            savedPaths: {},
+            cameraZoom: 1,
+            cameraTarget: null,
+            screenShake: { x: 0, y: 0, intensity: 0 },
+            particles: [],
+            slowMo: 1
+        };
+        
         // Speed control
         this.speedLevel = 1; // 0=slow, 1=normal, 2=fast
         this.speedMultipliers = [0.5, 1, 2];
@@ -3603,6 +3618,21 @@ class LightCycleGame {
             };
         }
         
+        // Add/update Replay button
+        let replayBtn = document.getElementById('replay-btn');
+        if (!replayBtn) {
+            replayBtn = document.createElement('button');
+            replayBtn.id = 'replay-btn';
+            replayBtn.className = 'neon-button secondary';
+            replayBtn.innerHTML = '🎬 REPLAY';
+            // Insert before the Next button
+            nextBtn.parentNode.insertBefore(replayBtn, nextBtn);
+        }
+        replayBtn.onclick = () => {
+            this.hideModal();
+            this.startCinematicReplay();
+        };
+        
         modal.classList.add('active');
     }
     
@@ -3641,6 +3671,267 @@ class LightCycleGame {
                 btn.style.transform = 'translateY(0)';
             }, 300 + i * 100);
         });
+    }
+    
+    // ==================== CINEMATIC REPLAY ====================
+    startCinematicReplay() {
+        // Save the current paths for replay
+        this.cinematicReplay.savedPaths = JSON.parse(JSON.stringify(this.paths));
+        this.cinematicReplay.active = true;
+        this.cinematicReplay.phase = 'intro';
+        this.cinematicReplay.pathIndex = 0;
+        this.cinematicReplay.segmentIndex = 0;
+        this.cinematicReplay.timer = 0;
+        this.cinematicReplay.cameraZoom = 1.2;
+        this.cinematicReplay.particles = [];
+        this.cinematicReplay.slowMo = 1;
+        this.cinematicReplay.screenShake = { x: 0, y: 0, intensity: 0 };
+        
+        // Clear current paths - we'll redraw them cinematically
+        this.paths = {};
+        this.cycles = [];
+        this.isRunning = false;
+        
+        // Show cinema mode overlay
+        this.showCinemaOverlay();
+        
+        // Start the cinematic sequence
+        this.playSound('click');
+        this.hapticFeedback('medium');
+        
+        setTimeout(() => {
+            this.cinematicReplay.phase = 'drawing';
+            this.animateCinematicReplay();
+        }, 500);
+    }
+    
+    showCinemaOverlay() {
+        let overlay = document.getElementById('cinema-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'cinema-overlay';
+            overlay.innerHTML = `
+                <div class="cinema-bars">
+                    <div class="cinema-bar top"></div>
+                    <div class="cinema-bar bottom"></div>
+                </div>
+                <div class="cinema-label">🎬 CINEMATIC REPLAY</div>
+                <button class="cinema-skip" id="cinema-skip">SKIP ⏭</button>
+            `;
+            document.getElementById('game-screen').appendChild(overlay);
+            
+            document.getElementById('cinema-skip').addEventListener('click', () => {
+                this.endCinematicReplay();
+            });
+        }
+        overlay.classList.add('active');
+    }
+    
+    hideCinemaOverlay() {
+        const overlay = document.getElementById('cinema-overlay');
+        if (overlay) overlay.classList.remove('active');
+    }
+    
+    animateCinematicReplay() {
+        if (!this.cinematicReplay.active) return;
+        
+        const replay = this.cinematicReplay;
+        const level = this.levels[this.currentLevel];
+        const pathKeys = Object.keys(replay.savedPaths);
+        
+        // Update camera shake
+        if (replay.screenShake.intensity > 0) {
+            replay.screenShake.x = (Math.random() - 0.5) * replay.screenShake.intensity;
+            replay.screenShake.y = (Math.random() - 0.5) * replay.screenShake.intensity;
+            replay.screenShake.intensity *= 0.9;
+        }
+        
+        // Update particles
+        this.updateCinemaParticles();
+        
+        if (replay.phase === 'drawing') {
+            // Cinematically draw paths one segment at a time
+            replay.timer++;
+            
+            if (replay.timer >= 8) { // Speed of path drawing
+                replay.timer = 0;
+                
+                const currentPathKey = pathKeys[replay.pathIndex];
+                const sourcePath = replay.savedPaths[currentPathKey];
+                
+                if (!this.paths[currentPathKey]) {
+                    this.paths[currentPathKey] = [sourcePath[0]]; // Start with outlet
+                    // Focus camera on this outlet
+                    replay.cameraTarget = sourcePath[0];
+                    this.playSound('click');
+                }
+                
+                const targetPath = this.paths[currentPathKey];
+                
+                if (targetPath.length < sourcePath.length) {
+                    // Add next segment
+                    const nextPoint = sourcePath[targetPath.length];
+                    targetPath.push(nextPoint);
+                    
+                    // Spawn particles at new point
+                    const outlet = level.outlets.find(o => o.id === currentPathKey);
+                    const color = outlet ? this.colors[outlet.color] : '#00ffff';
+                    this.spawnCinemaParticles(nextPoint.x, nextPoint.y, color);
+                    
+                    // Update camera target
+                    replay.cameraTarget = nextPoint;
+                    
+                    // Light haptic
+                    this.hapticFeedback('selection');
+                    this.playSound('path');
+                    
+                    // Check if reached station
+                    const station = level.stations.find(s => s.x === nextPoint.x && s.y === nextPoint.y);
+                    if (station) {
+                        replay.screenShake.intensity = 5;
+                        this.playSound('complete');
+                    }
+                } else {
+                    // Path complete, move to next
+                    replay.pathIndex++;
+                    replay.segmentIndex = 0;
+                    
+                    if (replay.pathIndex >= pathKeys.length) {
+                        // All paths drawn - transition to running
+                        replay.phase = 'pause';
+                        setTimeout(() => {
+                            replay.phase = 'running';
+                            this.startCinematicRun();
+                        }, 800);
+                    }
+                }
+            }
+            
+            // Smooth camera zoom
+            const targetZoom = 1.15;
+            replay.cameraZoom += (targetZoom - replay.cameraZoom) * 0.05;
+        }
+        
+        if (replay.phase === 'running') {
+            // The simulation is running - handled by normal animate
+            // Just update camera to follow action
+            if (this.cycles.length > 0) {
+                const activeCycle = this.cycles.find(c => c.active);
+                if (activeCycle) {
+                    const pos = activeCycle.path[Math.floor(activeCycle.progress)];
+                    if (pos) replay.cameraTarget = pos;
+                }
+            }
+            
+            // Check if simulation finished
+            if (!this.isRunning && this.cycles.length > 0) {
+                const allSuccess = this.cycles.every(c => c.success || c.merged);
+                if (allSuccess) {
+                    replay.phase = 'finale';
+                    replay.timer = 0;
+                }
+            }
+        }
+        
+        if (replay.phase === 'finale') {
+            replay.timer++;
+            replay.cameraZoom = 1 + Math.sin(replay.timer * 0.1) * 0.05;
+            replay.screenShake.intensity = Math.max(0, 10 - replay.timer * 0.2);
+            
+            // Spawn celebration particles
+            if (replay.timer % 5 === 0 && replay.timer < 60) {
+                const x = Math.random() * this.gridSize;
+                const y = Math.random() * this.gridSize;
+                const colors = ['#00ffff', '#ff00ff', '#ffff00', '#00ff00'];
+                this.spawnCinemaParticles(x, y, colors[Math.floor(Math.random() * colors.length)], 8);
+            }
+            
+            if (replay.timer > 120) {
+                this.endCinematicReplay();
+                return;
+            }
+        }
+        
+        // Continue animation
+        requestAnimationFrame(() => this.animateCinematicReplay());
+    }
+    
+    startCinematicRun() {
+        // Recalculate junctions
+        this.recalculateJunctions();
+        
+        // Start simulation at slow speed
+        const originalSpeed = this.speedLevel;
+        this.speedLevel = 0; // Slow
+        
+        this.runSimulation();
+        
+        // Restore speed after a moment
+        setTimeout(() => {
+            this.speedLevel = originalSpeed;
+        }, 100);
+    }
+    
+    spawnCinemaParticles(x, y, color, count = 6) {
+        const cx = x * this.cellSize + this.cellSize / 2;
+        const cy = y * this.cellSize + this.cellSize / 2;
+        
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 4;
+            this.cinematicReplay.particles.push({
+                x: cx, y: cy,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1,
+                color: color,
+                size: 3 + Math.random() * 5
+            });
+        }
+    }
+    
+    updateCinemaParticles() {
+        const particles = this.cinematicReplay.particles;
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.95;
+            p.vy *= 0.95;
+            p.life -= 0.02;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+    }
+    
+    drawCinemaParticles() {
+        const ctx = this.ctx;
+        this.cinematicReplay.particles.forEach(p => {
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+    }
+    
+    endCinematicReplay() {
+        this.cinematicReplay.active = false;
+        this.cinematicReplay.phase = 'idle';
+        this.hideCinemaOverlay();
+        
+        // Restore the completed paths
+        this.paths = this.cinematicReplay.savedPaths;
+        this.isRunning = false;
+        this.cycles = [];
+        
+        // Show completion modal again
+        const level = this.levels[this.currentLevel];
+        const stars = this.progress.stars[level.id] || 1;
+        this.showLevelCompleteModal(stars, 0, level.isDaily, level.isShared, 0);
     }
     
     celebrateConfetti() {
@@ -3718,6 +4009,24 @@ class LightCycleGame {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Apply cinematic camera effects
+        ctx.save();
+        if (this.cinematicReplay.active) {
+            const replay = this.cinematicReplay;
+            const centerX = this.canvas.width / 2;
+            const centerY = this.canvas.height / 2;
+            
+            // Apply screen shake
+            ctx.translate(replay.screenShake.x, replay.screenShake.y);
+            
+            // Apply zoom (zoom toward center or target)
+            if (replay.cameraZoom !== 1) {
+                ctx.translate(centerX, centerY);
+                ctx.scale(replay.cameraZoom, replay.cameraZoom);
+                ctx.translate(-centerX, -centerY);
+            }
+        }
+        
         // Draw grid
         this.drawGrid();
         
@@ -3767,7 +4076,15 @@ class LightCycleGame {
         // Draw crash explosion particles
         this.drawCrashParticles();
         
-        // Draw touch feedback visuals
+        // Draw cinematic replay particles
+        if (this.cinematicReplay.active) {
+            this.drawCinemaParticles();
+        }
+        
+        // Restore from cinematic camera transforms
+        this.ctx.restore();
+        
+        // Draw touch feedback visuals (outside camera transform)
         this.drawTouchFeedback();
         this.drawTouchRipples();
         this.drawInvalidFlash();
