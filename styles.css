@@ -991,3 +991,73 @@ body {
     from { text-shadow: 0 0 5px rgba(255, 153, 51, 0.5); }
     to { text-shadow: 0 0 15px rgba(255, 153, 51, 0.8), 0 0 25px rgba(255, 102, 0, 0.5); }
 }
+
+/* ==================== FREE DRAW MODE INDICATOR ==================== */
+.draw-mode-indicator {
+    position: absolute;
+    right: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    z-index: 10;
+}
+
+.draw-mode-indicator:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.draw-mode-indicator.auto-path-active {
+    background: linear-gradient(135deg, rgba(51, 102, 255, 0.3), rgba(51, 102, 255, 0.1));
+    border: 1px solid rgba(51, 102, 255, 0.5);
+    color: var(--neon-blue);
+}
+
+.draw-mode-indicator.free-draw-active {
+    background: linear-gradient(135deg, rgba(0, 255, 102, 0.3), rgba(0, 255, 102, 0.1));
+    border: 1px solid rgba(0, 255, 102, 0.5);
+    color: var(--neon-green);
+    animation: freeDrawPulse 2s ease-in-out infinite;
+}
+
+@keyframes freeDrawPulse {
+    0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 102, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(0, 255, 102, 0.6); }
+}
+
+/* Tooltip hint on hover */
+.draw-mode-indicator::after {
+    content: 'Tap to toggle';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.draw-mode-indicator:hover::after {
+    opacity: 1;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+    .draw-mode-indicator {
+        right: 60px;
+        padding: 3px 8px;
+        font-size: 0.6rem;
+    }
+    
+    .draw-mode-indicator::after {
+        display: none;
+    }
+}
