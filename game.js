@@ -91,6 +91,7 @@ class LightCycleGame {
         this.initAudio();
         this.initSwipeNavigation();
         this.initKeyboardShortcuts();
+        this.initCloudSync();
         this.renderLevelSelect();
         this.startAnimationLoop();
         
@@ -679,7 +680,8 @@ class LightCycleGame {
             devMode: false,
             colorblindMode: false,
             timeAttackMode: false,
-            freeDrawMode: false  // Free-form drawing: cell-by-cell without auto-pathfinding
+            freeDrawMode: false,  // Free-form drawing: cell-by-cell without auto-pathfinding
+            cloudSync: false  // Sync progress to cloud
         };
         return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
@@ -700,7 +702,225 @@ class LightCycleGame {
         return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
     
-    saveProgress() { localStorage.setItem('lightcycle_progress', JSON.stringify(this.progress)); }
+    saveProgress() { 
+        localStorage.setItem('lightcycle_progress', JSON.stringify(this.progress)); 
+        // Auto-sync to cloud if enabled
+        if (this.settings.cloudSync && this.cloudUserId) {
+            this.syncToCloud();
+        }
+    }
+    
+    // ==================== CLOUD SYNC ====================
+    initCloudSync() {
+        // Supabase configuration
+        this.supabaseUrl = 'https://uvanigqqvfidjbtnqvvz.supabase.co';
+        this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2YW5pZ3FxdmZpZGpidG5xdnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTk0MTksImV4cCI6MjA4MTM5NTQxOX0.zeT5CI1D1chqRBPGu8O5bvd0WfBpidBjLKkIXUqgkRc';
+        
+        // Get or generate user ID
+        this.cloudUserId = localStorage.getItem('lightcycle_cloud_user_id');
+        if (!this.cloudUserId) {
+            this.cloudUserId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+            localStorage.setItem('lightcycle_cloud_user_id', this.cloudUserId);
+        }
+        
+        // Sync status
+        this.syncStatus = 'idle'; // idle, syncing, error
+        this.lastSyncTime = localStorage.getItem('lightcycle_last_sync') || null;
+    }
+    
+    async syncToCloud() {
+        if (!this.settings.cloudSync || this.syncStatus === 'syncing') return;
+        
+        this.syncStatus = 'syncing';
+        this.updateSyncIndicator();
+        
+        try {
+            const response = await fetch(`${this.supabaseUrl}/rest/v1/lightcycle_progress?user_id=eq.${this.cloudUserId}`, {
+                method: 'GET',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const existing = await response.json();
+            
+            if (existing.length > 0) {
+                // Update existing record
+                await fetch(`${this.supabaseUrl}/rest/v1/lightcycle_progress?user_id=eq.${this.cloudUserId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        progress: this.progress,
+                        updated_at: new Date().toISOString()
+                    })
+                });
+            } else {
+                // Insert new record
+                await fetch(`${this.supabaseUrl}/rest/v1/lightcycle_progress`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        user_id: this.cloudUserId,
+                        progress: this.progress
+                    })
+                });
+            }
+            
+            this.syncStatus = 'idle';
+            this.lastSyncTime = new Date().toISOString();
+            localStorage.setItem('lightcycle_last_sync', this.lastSyncTime);
+            this.updateSyncIndicator();
+            
+        } catch (error) {
+            console.error('Cloud sync error:', error);
+            this.syncStatus = 'error';
+            this.updateSyncIndicator();
+        }
+    }
+    
+    async syncFromCloud() {
+        if (!this.settings.cloudSync) return null;
+        
+        this.syncStatus = 'syncing';
+        this.updateSyncIndicator();
+        
+        try {
+            const response = await fetch(`${this.supabaseUrl}/rest/v1/lightcycle_progress?user_id=eq.${this.cloudUserId}`, {
+                method: 'GET',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            this.syncStatus = 'idle';
+            this.updateSyncIndicator();
+            
+            if (data.length > 0) {
+                return data[0].progress;
+            }
+            return null;
+            
+        } catch (error) {
+            console.error('Cloud fetch error:', error);
+            this.syncStatus = 'error';
+            this.updateSyncIndicator();
+            return null;
+        }
+    }
+    
+    mergeProgress(local, cloud) {
+        if (!cloud) return local;
+        
+        // Merge completed levels (union)
+        const mergedCompleted = [...new Set([...local.completedLevels, ...cloud.completedLevels])];
+        
+        // Merge stars (keep highest)
+        const mergedStars = { ...local.stars };
+        for (const [level, stars] of Object.entries(cloud.stars || {})) {
+            mergedStars[level] = Math.max(mergedStars[level] || 0, stars);
+        }
+        
+        // Merge best times (keep lowest)
+        const mergedTimes = { ...local.bestTimes };
+        for (const [level, time] of Object.entries(cloud.bestTimes || {})) {
+            if (!mergedTimes[level] || time < mergedTimes[level]) {
+                mergedTimes[level] = time;
+            }
+        }
+        
+        // Merge move history (keep lowest)
+        const mergedMoves = { ...local.moveHistory };
+        for (const [level, moves] of Object.entries(cloud.moveHistory || {})) {
+            if (!mergedMoves[level] || moves < mergedMoves[level]) {
+                mergedMoves[level] = moves;
+            }
+        }
+        
+        // Merge daily (keep all)
+        const mergedDaily = { ...local.dailyCompleted, ...cloud.dailyCompleted };
+        
+        // Keep highest streak
+        const mergedStreak = Math.max(local.dailyStreak || 0, cloud.dailyStreak || 0);
+        
+        return {
+            completedLevels: mergedCompleted,
+            stars: mergedStars,
+            bestTimes: mergedTimes,
+            moveHistory: mergedMoves,
+            dailyCompleted: mergedDaily,
+            dailyStreak: mergedStreak,
+            lastDailyDate: local.lastDailyDate || cloud.lastDailyDate
+        };
+    }
+    
+    updateSyncIndicator() {
+        let indicator = document.getElementById('sync-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'sync-indicator';
+            indicator.className = 'sync-indicator';
+            document.body.appendChild(indicator);
+        }
+        
+        if (!this.settings.cloudSync) {
+            indicator.style.display = 'none';
+            return;
+        }
+        
+        indicator.style.display = 'flex';
+        
+        if (this.syncStatus === 'syncing') {
+            indicator.innerHTML = '☁️ <span class="sync-spinner">↻</span>';
+            indicator.title = 'Syncing...';
+        } else if (this.syncStatus === 'error') {
+            indicator.innerHTML = '☁️ ⚠️';
+            indicator.title = 'Sync error - tap to retry';
+            indicator.onclick = () => this.syncToCloud();
+        } else {
+            indicator.innerHTML = '☁️ ✓';
+            indicator.title = this.lastSyncTime ? `Last sync: ${new Date(this.lastSyncTime).toLocaleTimeString()}` : 'Synced';
+        }
+    }
+    
+    async performCloudSync() {
+        if (!this.settings.cloudSync) return;
+        
+        this.showToast('☁️ Syncing with cloud...', 1500);
+        
+        // Fetch from cloud
+        const cloudData = await this.syncFromCloud();
+        
+        if (cloudData) {
+            // Merge local and cloud
+            this.progress = this.mergeProgress(this.progress, cloudData);
+            localStorage.setItem('lightcycle_progress', JSON.stringify(this.progress));
+            
+            // Push merged data back to cloud
+            await this.syncToCloud();
+            
+            this.showToast('☁️ Progress synced!', 2000);
+            this.renderLevelSelect();
+        } else {
+            // No cloud data, just push local
+            await this.syncToCloud();
+            this.showToast('☁️ Progress uploaded!', 2000);
+        }
+    }
     
     // ==================== COLORBLIND SUPPORT ====================
     getColorLabel(colorName) {
@@ -1236,6 +1456,36 @@ class LightCycleGame {
             });
         }
         
+        // Cloud sync toggle
+        const cloudSyncToggle = document.getElementById('cloud-sync-toggle');
+        if (cloudSyncToggle) {
+            cloudSyncToggle.addEventListener('change', (e) => {
+                this.settings.cloudSync = e.target.checked; 
+                this.saveSettings();
+                this.hapticFeedback('selection');
+                if (e.target.checked) {
+                    this.showToast('☁️ Cloud Sync enabled!');
+                    this.performCloudSync();
+                } else {
+                    this.showToast('Cloud Sync disabled');
+                }
+                this.updateSyncIndicator();
+            });
+        }
+        
+        // Sync now button
+        const syncNowBtn = document.getElementById('sync-now-btn');
+        if (syncNowBtn) {
+            syncNowBtn.addEventListener('click', () => {
+                if (!this.settings.cloudSync) {
+                    this.showToast('Enable Cloud Sync first');
+                    return;
+                }
+                this.hapticFeedback('medium');
+                this.performCloudSync();
+            });
+        }
+        
         document.getElementById('reset-progress-btn').addEventListener('click', () => {
             this.showConfirmDialog('Reset all progress?', 'This cannot be undone.', () => {
                 this.progress = { completedLevels: [], stars: {}, moveHistory: {}, bestTimes: {}, dailyCompleted: {}, dailyStreak: 0, lastDailyDate: null };
@@ -1267,6 +1517,10 @@ class LightCycleGame {
         if (colorblindToggle) colorblindToggle.checked = this.settings.colorblindMode;
         if (timeAttackToggle) timeAttackToggle.checked = this.settings.timeAttackMode;
         if (freeDrawToggle) freeDrawToggle.checked = this.settings.freeDrawMode === true;
+        if (cloudSyncToggle) cloudSyncToggle.checked = this.settings.cloudSync === true;
+        
+        // Update sync indicator on load
+        this.updateSyncIndicator();
         
         window.addEventListener('resize', () => this.resizeCanvas());
         
@@ -3654,5 +3908,6 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
+
 
 
