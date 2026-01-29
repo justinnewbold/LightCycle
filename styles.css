@@ -1108,3 +1108,39 @@ body {
         display: none;
     }
 }
+
+
+/* Back Tile - used in level pack view */
+.level-tile.back-tile {
+    border-color: #666;
+    background: linear-gradient(135deg, rgba(100, 100, 100, 0.2) 0%, rgba(50, 50, 50, 0.1) 100%);
+}
+
+.level-tile.back-tile:hover {
+    border-color: var(--pack-color, #888);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--pack-color, #888) 30%, transparent);
+}
+
+.level-tile.back-tile .level-number {
+    font-size: 1.5rem;
+}
+
+.level-tile.back-tile .level-stars {
+    color: var(--pack-color, #888);
+    font-size: 0.6rem;
+}
+
+/* Pack completion badge */
+.level-tile.level-pack.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    font-size: 1rem;
+    color: var(--neon-green);
+}
+
+/* Enhanced pack tiles with color border */
+.level-tile.level-pack {
+    border-color: color-mix(in srgb, var(--pack-color, #00ffff) 60%, transparent);
+}
