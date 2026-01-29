@@ -529,6 +529,37 @@ class LightCycleGame {
               splitters: [{ x: 1, y: 4, directions: ['up', 'down'] }, { x: 7, y: 4, directions: ['up', 'down'] }],
               colorChangers: [{ x: 3, y: 2, toColor: 'cyan' }] }
         ];
+        
+        // Define level packs for themed groupings
+        this.levelPacks = [
+            { id: 'basics', name: 'The Basics', description: 'Learn the fundamentals', 
+              color: '#00ffff', icon: '🎮', levels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { id: 'colors', name: 'Color Theory', description: 'Master color mixing', 
+              color: '#ff00ff', icon: '🎨', levels: [13, 14, 15] },
+            { id: 'junctions', name: 'Junction Control', description: 'Control the crossings', 
+              color: '#ffff00', icon: '🔀', levels: [16, 17, 18] },
+            { id: 'multiTrain', name: 'Train Swarm', description: 'Multiple trains, one goal', 
+              color: '#ff6633', icon: '🚂', levels: [19, 20, 21, 22] },
+            { id: 'stations', name: 'Station Demands', description: 'Meet the requirements', 
+              color: '#33ff66', icon: '🏁', levels: [23, 24, 25, 26, 27] },
+            { id: 'timing', name: 'Perfect Timing', description: 'Synchronize your paths', 
+              color: '#6699ff', icon: '⏱️', levels: [28, 29, 30, 31, 32] },
+            { id: 'crashes', name: 'Crash Course', description: 'Avoid the collisions', 
+              color: '#ff3366', icon: '💥', levels: [33, 34, 35, 36, 37, 38] },
+            { id: 'freeDraw', name: 'Free Form', description: 'Precision path drawing', 
+              color: '#00ff99', icon: '✏️', levels: [39, 40, 41, 42, 43, 44] },
+            { id: 'advanced', name: 'Advanced', description: 'Expert-level challenges', 
+              color: '#cc66ff', icon: '🔥', levels: [45, 46, 47, 48, 49, 50] },
+            { id: 'expert', name: 'Expert', description: 'Push your limits', 
+              color: '#ff9933', icon: '⚡', levels: [51, 52, 53, 54, 55, 56, 57, 58, 59, 60] },
+            { id: 'master', name: 'Master', description: 'Only for the skilled', 
+              color: '#ff66b2', icon: '👑', levels: [61, 62, 63, 64, 65, 66, 67, 68, 69, 70] },
+            { id: 'legendary', name: 'Legendary', description: 'The ultimate challenge', 
+              color: '#ffd700', icon: '🏆', levels: [71, 72, 73, 74, 75] }
+        ];
+        
+        // Track currently selected pack (null = show all packs)
+        this.selectedPack = null;
     }
     
     // ==================== AUDIO ====================
@@ -2370,6 +2401,12 @@ class LightCycleGame {
         const grid = document.getElementById('level-grid');
         grid.innerHTML = '';
         
+        // If a pack is selected, show levels from that pack
+        if (this.selectedPack) {
+            this.renderPackLevels(this.selectedPack);
+            return;
+        }
+        
         // Daily Challenge tile
         const dailyTile = document.createElement('div');
         dailyTile.className = 'level-tile daily-challenge';
@@ -2390,12 +2427,91 @@ class LightCycleGame {
         });
         grid.appendChild(dailyTile);
         
-        // Regular levels
-        this.levels.forEach((level, index) => {
+        // Render level packs as tiles
+        this.levelPacks.forEach(pack => {
+            const tile = document.createElement('div');
+            tile.className = 'level-tile level-pack';
+            tile.style.setProperty('--pack-color', pack.color);
+            
+            // Calculate pack completion
+            const completedInPack = pack.levels.filter(lvl => 
+                this.progress.completedLevels.includes(lvl - 1)
+            ).length;
+            const totalInPack = pack.levels.length;
+            const isPackComplete = completedInPack === totalInPack;
+            
+            // Calculate total stars in pack
+            const totalStars = pack.levels.reduce((sum, lvl) => 
+                sum + (this.progress.stars[lvl - 1] || 0), 0);
+            const maxStars = totalInPack * 3;
+            
+            // Check if pack is unlocked (first pack or previous pack has at least one completion)
+            const packIndex = this.levelPacks.indexOf(pack);
+            const prevPack = packIndex > 0 ? this.levelPacks[packIndex - 1] : null;
+            const isPackUnlocked = this.settings.devMode || packIndex === 0 || 
+                (prevPack && prevPack.levels.some(lvl => this.progress.completedLevels.includes(lvl - 1)));
+            
+            if (isPackComplete) tile.classList.add('completed');
+            if (!isPackUnlocked) tile.classList.add('locked');
+            
+            tile.innerHTML = `
+                <span class="level-number">${pack.icon}</span>
+                <span class="level-name">${pack.name}</span>
+                <span class="pack-desc">${pack.description}</span>
+                <span class="level-stars">${completedInPack}/${totalInPack} • ⭐${totalStars}/${maxStars}</span>
+            `;
+            
+            if (isPackUnlocked) {
+                tile.addEventListener('click', () => {
+                    this.animateButtonPress(tile);
+                    this.playSound('click');
+                    this.hapticFeedback('light');
+                    this.selectedPack = pack;
+                    this.renderLevelSelect();
+                });
+            }
+            
+            grid.appendChild(tile);
+        });
+    }
+    
+    // Render levels within a selected pack
+    renderPackLevels(pack) {
+        const grid = document.getElementById('level-grid');
+        grid.innerHTML = '';
+        
+        // Back to packs tile
+        const backTile = document.createElement('div');
+        backTile.className = 'level-tile back-tile';
+        backTile.style.setProperty('--pack-color', pack.color);
+        backTile.innerHTML = `
+            <span class="level-number">←</span>
+            <span class="level-name">Back to Packs</span>
+            <span class="level-stars">${pack.name}</span>
+        `;
+        backTile.addEventListener('click', () => {
+            this.animateButtonPress(backTile);
+            this.playSound('click');
+            this.hapticFeedback('light');
+            this.selectedPack = null;
+            this.renderLevelSelect();
+        });
+        grid.appendChild(backTile);
+        
+        // Render levels in this pack
+        pack.levels.forEach(levelId => {
+            const index = levelId - 1; // Convert to 0-based index
+            const level = this.levels[index];
+            if (!level) return;
+            
             const tile = document.createElement('div');
             tile.className = 'level-tile';
+            tile.style.setProperty('--pack-color', pack.color);
+            
             const isCompleted = this.progress.completedLevels.includes(index);
-            const isUnlocked = this.settings.devMode || index === 0 || this.progress.completedLevels.includes(index - 1);
+            const isUnlocked = this.settings.devMode || index === 0 || 
+                this.progress.completedLevels.includes(index - 1);
+            
             if (isCompleted) tile.classList.add('completed');
             if (!isUnlocked) tile.classList.add('locked');
             
@@ -3538,4 +3654,5 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
+
 
