@@ -79,7 +79,7 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ---
 
-### 5. [ ] Crash vs Merge Distinction
+### 5. [x] Crash vs Merge Distinction
 **Description:** Head-on collisions cause crashes (fail), same-direction meetings cause merges (combine).
 
 **Details:**
@@ -248,4 +248,5 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ---
 
-*Last Updated: January 26, 2026*
+*Last Updated: January 28, 2026*
+
