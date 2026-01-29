@@ -38,8 +38,15 @@ class LightCycleGame {
         this.isDragging = false;
         this.dragPath = [];
         this.lastDragCell = null;
-        this.swipeThreshold = 10;
+        this.swipeThreshold = 8; // Reduced for better sensitivity
         this.isSwipeDrawing = false;
+        
+        // Touch feedback visuals
+        this.touchRipples = []; // Visual ripple effects
+        this.lastPathAddTime = 0; // For path animation timing
+        this.pathPulseIntensity = 0; // Pulse when adding to path
+        this.invalidMoveFlash = null; // Flash red on invalid move
+        this.touchFeedbackCell = null; // Currently touched cell for highlight
         
         // Speed control
         this.speedLevel = 1; // 0=slow, 1=normal, 2=fast
@@ -1639,6 +1646,12 @@ class LightCycleGame {
         this.dragPath = [];
         this.lastDragCell = null;
         this.isLongPress = false;
+        this.touchFeedbackCell = pos; // Visual feedback for touched cell
+        
+        // Spawn touch ripple for immediate visual feedback
+        if (pos) {
+            this.spawnTouchRipple(pos.x, pos.y, '#00ffff', true);
+        }
         
         // Start long press timer for undo
         this.longPressTimer = setTimeout(() => {
@@ -1661,6 +1674,7 @@ class LightCycleGame {
                     this.lastDragCell = pos;
                     this.playSound('undo');
                     this.hapticFeedback('light');
+                    this.spawnTouchRipple(pos.x, pos.y, '#ff6666', true);
                     return;
                 }
             }
@@ -1677,6 +1691,8 @@ class LightCycleGame {
             this.startNewPath(outlet);
             this.isSwipeDrawing = true;
             this.lastDragCell = pos;
+            this.spawnTouchRipple(pos.x, pos.y, this.colors[outlet.color], true);
+            this.hapticFeedback('medium'); // Stronger feedback when starting path
         }
         
         this.hoverCell = pos;
@@ -1687,6 +1703,11 @@ class LightCycleGame {
         
         const pos = this.getGridPosition(e.clientX, e.clientY);
         this.hoverCell = pos;
+        
+        // Update touch feedback cell when moving
+        if (pos && (!this.touchFeedbackCell || this.touchFeedbackCell.x !== pos.x || this.touchFeedbackCell.y !== pos.y)) {
+            this.touchFeedbackCell = pos;
+        }
         
         if (!this.touchStart) return;
         
@@ -1700,7 +1721,7 @@ class LightCycleGame {
             this.longPressTimer = null;
         }
         
-        // Start dragging
+        // Start dragging (lower threshold for more responsive feel)
         if (distance > this.swipeThreshold) {
             this.isDragging = true;
         }
@@ -1720,6 +1741,7 @@ class LightCycleGame {
                             this.playSound('undo');
                             this.hapticFeedback('light');
                             this.updateJunctions();
+                            this.spawnTouchRipple(pos.x, pos.y, '#ff6666', true);
                         }
                     }
                     this.lastDragCell = pos;
@@ -1729,33 +1751,115 @@ class LightCycleGame {
             return;
         }
         
-        // Swipe drawing mode
+        // Swipe drawing mode - improved with path interpolation for smooth swipes
         if (this.isDragging && this.isSwipeDrawing && this.currentPath && this.currentOutlet && pos) {
             if (!this.lastDragCell || this.lastDragCell.x !== pos.x || this.lastDragCell.y !== pos.y) {
-                // Check if moving to adjacent cell
+                // Check if moving to adjacent or near-adjacent cell
                 if (this.lastDragCell) {
-                    const cellDx = Math.abs(pos.x - this.lastDragCell.x);
-                    const cellDy = Math.abs(pos.y - this.lastDragCell.y);
+                    const cellDx = pos.x - this.lastDragCell.x;
+                    const cellDy = pos.y - this.lastDragCell.y;
+                    const absDx = Math.abs(cellDx);
+                    const absDy = Math.abs(cellDy);
                     
-                    if ((cellDx === 1 && cellDy === 0) || (cellDx === 0 && cellDy === 1)) {
-                        // Check for backtrack
-                        const existingIndex = this.currentPath.findIndex(p => p.x === pos.x && p.y === pos.y);
-                        if (existingIndex >= 0 && existingIndex < this.currentPath.length - 1) {
-                            // Backtrack - remove nodes
-                            this.currentPath.splice(existingIndex + 1);
-                            this.playSound('undo');
-                            this.hapticFeedback('light');
-                        } else if (!this.isObstacle(pos.x, pos.y)) {
-                            // Extend path
+                    // Check for backtrack first
+                    const existingIndex = this.currentPath.findIndex(p => p.x === pos.x && p.y === pos.y);
+                    if (existingIndex >= 0 && existingIndex < this.currentPath.length - 1) {
+                        // Backtrack - remove nodes
+                        this.currentPath.splice(existingIndex + 1);
+                        this.playSound('undo');
+                        this.hapticFeedback('light');
+                        this.lastDragCell = pos;
+                    } else if ((absDx === 1 && absDy === 0) || (absDx === 0 && absDy === 1)) {
+                        // Direct adjacent - extend normally
+                        if (!this.isObstacle(pos.x, pos.y)) {
                             this.addToPath(pos);
+                        } else {
+                            this.flashInvalidMove(pos.x, pos.y);
+                        }
+                        this.lastDragCell = pos;
+                    } else if (absDx <= 2 && absDy <= 2 && (absDx + absDy <= 3)) {
+                        // Diagonal or skip - try to interpolate path
+                        const intermediates = this.findIntermediateCells(this.lastDragCell, pos);
+                        if (intermediates.length > 0) {
+                            let blocked = false;
+                            for (const cell of intermediates) {
+                                if (this.isObstacle(cell.x, cell.y)) {
+                                    blocked = true;
+                                    this.flashInvalidMove(cell.x, cell.y);
+                                    break;
+                                }
+                                // Check if already in path (would be backtrack)
+                                const idx = this.currentPath.findIndex(p => p.x === cell.x && p.y === cell.y);
+                                if (idx >= 0 && idx < this.currentPath.length - 1) {
+                                    // Partial backtrack
+                                    this.currentPath.splice(idx + 1);
+                                    this.playSound('undo');
+                                    this.hapticFeedback('light');
+                                    blocked = true;
+                                    break;
+                                }
+                            }
+                            if (!blocked) {
+                                for (const cell of intermediates) {
+                                    this.addToPath(cell);
+                                }
+                            }
+                            this.lastDragCell = pos;
                         }
                     }
+                } else {
+                    this.lastDragCell = pos;
                 }
-                this.lastDragCell = pos;
             }
         }
         
         this.touchCurrent = { x: e.clientX, y: e.clientY };
+    }
+    
+    // Find intermediate cells for smoother diagonal swipes
+    findIntermediateCells(from, to) {
+        const cells = [];
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        
+        // Simple L-path interpolation
+        if (Math.abs(dx) > 0 && Math.abs(dy) > 0) {
+            // Try horizontal then vertical
+            const midX = { x: from.x + Math.sign(dx), y: from.y };
+            if (!this.isObstacle(midX.x, midX.y)) {
+                cells.push(midX);
+                if (Math.abs(dx) > 1) {
+                    cells.push({ x: from.x + Math.sign(dx) * 2, y: from.y });
+                }
+            }
+            // Continue to target
+            let currentX = cells.length > 0 ? cells[cells.length - 1].x : from.x;
+            while (currentX !== to.x) {
+                currentX += Math.sign(to.x - currentX);
+                cells.push({ x: currentX, y: from.y });
+            }
+            // Now vertical
+            let currentY = from.y;
+            while (currentY !== to.y) {
+                currentY += Math.sign(to.y - currentY);
+                cells.push({ x: to.x, y: currentY });
+            }
+        } else if (Math.abs(dx) > 1) {
+            // Horizontal skip
+            for (let x = from.x + Math.sign(dx); x !== to.x + Math.sign(dx); x += Math.sign(dx)) {
+                cells.push({ x: x, y: from.y });
+            }
+        } else if (Math.abs(dy) > 1) {
+            // Vertical skip
+            for (let y = from.y + Math.sign(dy); y !== to.y + Math.sign(dy); y += Math.sign(dy)) {
+                cells.push({ x: from.x, y: y });
+            }
+        } else {
+            // Single step
+            cells.push(to);
+        }
+        
+        return cells;
     }
     
     handlePointerEnd(e) {
@@ -1806,6 +1910,7 @@ class LightCycleGame {
         this.dragPath = [];
         this.lastDragCell = null;
         this.isLongPress = false;
+        this.touchFeedbackCell = null; // Clear touch feedback
     }
     
     // ==================== SWIPE NAVIGATION ====================
@@ -1970,6 +2075,8 @@ class LightCycleGame {
         this.currentPath.push({ x: pos.x, y: pos.y });
         this.playSound('path'); this.hapticFeedback('selection');
         this.spawnTrailParticles(pos.x, pos.y, this.currentOutlet.color);
+        this.spawnTouchRipple(pos.x, pos.y, this.colors[this.currentOutlet.color], true);
+        this.lastPathAddTime = Date.now();
         
         // Update junction tracking when path crosses another path
         this.updateJunctionTracking(pos.x, pos.y);
@@ -1979,6 +2086,12 @@ class LightCycleGame {
         if (station) {
             this.playSound('complete');
             this.hapticFeedback('success');
+            // Extra visual feedback for reaching station
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    this.spawnTouchRipple(pos.x, pos.y, this.colors[this.currentOutlet.color] || '#00ff00', true);
+                }, i * 100);
+            }
             this.finishCurrentPath();
         }
     }
@@ -2413,6 +2526,103 @@ class LightCycleGame {
         }
     }
     
+    // Touch ripple effect
+    spawnTouchRipple(x, y, color = '#00ffff', isValid = true) {
+        const cx = x * this.cellSize + this.cellSize / 2;
+        const cy = y * this.cellSize + this.cellSize / 2;
+        this.touchRipples.push({
+            x: cx, y: cy,
+            radius: this.cellSize * 0.2,
+            maxRadius: this.cellSize * 0.8,
+            life: 1,
+            color: isValid ? color : '#ff4444',
+            isValid: isValid
+        });
+    }
+    
+    updateTouchRipples() {
+        for (let i = this.touchRipples.length - 1; i >= 0; i--) {
+            const r = this.touchRipples[i];
+            r.radius += (r.maxRadius - r.radius) * 0.15;
+            r.life -= 0.06;
+            if (r.life <= 0) this.touchRipples.splice(i, 1);
+        }
+    }
+    
+    drawTouchRipples() {
+        const ctx = this.ctx;
+        this.touchRipples.forEach(r => {
+            ctx.beginPath();
+            ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = r.color;
+            ctx.lineWidth = 3 * r.life;
+            ctx.globalAlpha = r.life * 0.6;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        });
+    }
+    
+    // Invalid move flash
+    flashInvalidMove(x, y) {
+        this.invalidMoveFlash = {
+            x: x, y: y,
+            life: 1
+        };
+        this.hapticFeedback('fail');
+        this.playSound('fail');
+    }
+    
+    updateInvalidFlash() {
+        if (this.invalidMoveFlash) {
+            this.invalidMoveFlash.life -= 0.08;
+            if (this.invalidMoveFlash.life <= 0) {
+                this.invalidMoveFlash = null;
+            }
+        }
+    }
+    
+    drawInvalidFlash() {
+        if (!this.invalidMoveFlash) return;
+        const ctx = this.ctx;
+        const f = this.invalidMoveFlash;
+        const x = f.x * this.cellSize;
+        const y = f.y * this.cellSize;
+        
+        ctx.fillStyle = `rgba(255, 68, 68, ${f.life * 0.4})`;
+        ctx.fillRect(x, y, this.cellSize, this.cellSize);
+        
+        // X mark
+        ctx.strokeStyle = `rgba(255, 68, 68, ${f.life})`;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        const pad = this.cellSize * 0.25;
+        ctx.beginPath();
+        ctx.moveTo(x + pad, y + pad);
+        ctx.lineTo(x + this.cellSize - pad, y + this.cellSize - pad);
+        ctx.moveTo(x + this.cellSize - pad, y + pad);
+        ctx.lineTo(x + pad, y + this.cellSize - pad);
+        ctx.stroke();
+    }
+    
+    // Touch feedback cell highlight
+    drawTouchFeedback() {
+        if (!this.touchFeedbackCell || this.isRunning) return;
+        const ctx = this.ctx;
+        const pos = this.touchFeedbackCell;
+        const x = pos.x * this.cellSize;
+        const y = pos.y * this.cellSize;
+        const pulse = Math.sin(Date.now() * 0.01) * 0.15 + 0.85;
+        
+        // Soft glow around touched cell
+        ctx.fillStyle = `rgba(0, 255, 255, ${0.15 * pulse})`;
+        ctx.fillRect(x, y, this.cellSize, this.cellSize);
+        
+        // Border highlight
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
+    }
+    
     updateTrailParticles() {
         for (let i = this.trailParticles.length - 1; i >= 0; i--) {
             const p = this.trailParticles[i];
@@ -2420,6 +2630,9 @@ class LightCycleGame {
             p.life -= 0.025; p.vx *= 0.96; p.vy *= 0.96;
             if (p.life <= 0) this.trailParticles.splice(i, 1);
         }
+        // Also update touch ripples and flash
+        this.updateTouchRipples();
+        this.updateInvalidFlash();
     }
     
     // ==================== SIMULATION ====================
@@ -3553,6 +3766,11 @@ class LightCycleGame {
         
         // Draw crash explosion particles
         this.drawCrashParticles();
+        
+        // Draw touch feedback visuals
+        this.drawTouchFeedback();
+        this.drawTouchRipples();
+        this.drawInvalidFlash();
     }
     
     drawGrid() {
@@ -3684,6 +3902,7 @@ class LightCycleGame {
     drawPaths() {
         const ctx = this.ctx;
         const level = this.levels[this.currentLevel];
+        const activePulse = Math.sin(Date.now() * 0.008) * 0.3 + 1.0;
         
         for (const outletId in this.paths) {
             const path = this.paths[outletId];
@@ -3691,12 +3910,13 @@ class LightCycleGame {
             
             const outlet = level.outlets.find(o => o.id === outletId);
             const color = outlet ? this.colors[outlet.color] : '#00ffff';
+            const isActivePath = this.currentOutlet && this.currentOutlet.id === outletId;
             
-            // Glow effect
+            // Enhanced glow effect - pulse when actively drawing
             ctx.shadowColor = color;
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = isActivePath ? 20 * activePulse : 15;
             ctx.strokeStyle = color;
-            ctx.lineWidth = 6;
+            ctx.lineWidth = isActivePath ? 7 : 6;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
@@ -3709,11 +3929,28 @@ class LightCycleGame {
             });
             ctx.stroke();
             
-            // Inner white line
+            // Inner white line - brighter when active
             ctx.shadowBlur = 0;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = isActivePath ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = isActivePath ? 3 : 2;
             ctx.stroke();
+            
+            // Draw animated endpoint indicator when actively drawing
+            if (isActivePath && path.length > 1) {
+                const lastPoint = path[path.length - 1];
+                const px = lastPoint.x * this.cellSize + this.cellSize / 2;
+                const py = lastPoint.y * this.cellSize + this.cellSize / 2;
+                
+                // Pulsing ring at path end
+                ctx.beginPath();
+                ctx.arc(px, py, this.cellSize * 0.25 * activePulse, 0, Math.PI * 2);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15 * activePulse;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
             
             // Node numbers
             if (this.settings.gridNumbers) {
