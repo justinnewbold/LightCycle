@@ -206,13 +206,22 @@
             <div id="game-area">
                 <canvas id="game-canvas"></canvas>
             </div>
-            <div class="game-controls">
-                <button id="hint-btn" class="control-btn small" title="Use Hint">💡<span class="hint-count">3</span></button>
-                <button id="undo-btn" class="control-btn">UNDO</button>
-                <button id="run-btn" class="control-btn primary">RUN</button>
-                <button id="clear-btn" class="control-btn">CLEAR</button>
-                <button id="eraser-btn" class="control-btn small" title="Eraser Mode">🧹</button>
+            
+            <!-- Secondary toolbar (collapsible) -->
+            <div class="secondary-toolbar" id="secondary-toolbar">
+                <button id="hint-btn" class="tool-btn" title="Use Hint (H)">💡<span class="hint-count">3</span></button>
+                <button id="eraser-btn" class="tool-btn" title="Eraser Mode (E)">🧹</button>
+                <button id="speed-btn" class="tool-btn" title="Speed (S)">⏩</button>
+                <button id="reset-level-btn2" class="tool-btn" title="Reset Level (R)">↻</button>
             </div>
+            
+            <!-- Main controls - simplified -->
+            <div class="game-controls">
+                <button id="undo-btn" class="control-btn">⟲ UNDO</button>
+                <button id="run-btn" class="control-btn primary large">▶ RUN</button>
+                <button id="clear-btn" class="control-btn">✕ CLEAR</button>
+            </div>
+            
             <div id="level-message" class="level-message"></div>
         </div>
 
