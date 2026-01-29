@@ -310,7 +310,42 @@ class LightCycleGame {
               par: 20, undoBonus: 4,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'red' }, { id: 'o2', x: 7, y: 2, color: 'blue' }, { id: 'o3', x: 0, y: 5, color: 'yellow' }],
               stations: [{ id: 's1', x: 7, y: 5, color: 'red' }, { id: 's2', x: 0, y: 0, color: 'blue' }, { id: 's3', x: 7, y: 7, color: 'yellow' }],
-              obstacles: [{ x: 4, y: 3 }, { x: 4, y: 4 }], splitters: [], colorChangers: [] }
+              obstacles: [{ x: 4, y: 3 }, { x: 4, y: 4 }], splitters: [], colorChangers: [] },
+            // NEW: Free Draw Mode showcase levels
+            { id: 39, name: "Manual Control", description: "✏️ Try Free Draw mode in Settings!", gridSize: 6,
+              par: 12, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }],
+              stations: [{ id: 's1', x: 5, y: 2, color: 'cyan' }],
+              obstacles: [{ x: 2, y: 1 }, { x: 2, y: 3 }, { x: 4, y: 1 }, { x: 4, y: 3 }], splitters: [], colorChangers: [] },
+            { id: 40, name: "Precise Loops", description: "Free Draw helps create exact path shapes", gridSize: 7,
+              par: 16, undoBonus: 3,
+              outlets: [{ id: 'o1', x: 0, y: 3, color: 'magenta' }],
+              stations: [{ id: 's1', x: 6, y: 3, color: 'magenta' }],
+              obstacles: [{ x: 2, y: 2 }, { x: 2, y: 4 }, { x: 4, y: 2 }, { x: 4, y: 4 }], splitters: [], colorChangers: [] },
+            { id: 41, name: "Timing Path", description: "Longer paths = more delay for timing", gridSize: 7,
+              par: 18, undoBonus: 3,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 5, color: 'blue' }],
+              stations: [{ id: 's1', x: 6, y: 3, color: 'purple' }],
+              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
+            { id: 42, name: "Snake Route", description: "Wind through the maze cell-by-cell", gridSize: 8,
+              par: 24, undoBonus: 4,
+              outlets: [{ id: 'o1', x: 0, y: 0, color: 'cyan' }],
+              stations: [{ id: 's1', x: 7, y: 7, color: 'cyan' }],
+              obstacles: [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 5, y: 1 }, { x: 6, y: 1 },
+                          { x: 1, y: 3 }, { x: 2, y: 3 }, { x: 3, y: 3 }, { x: 4, y: 3 }, { x: 5, y: 3 }, { x: 6, y: 3 },
+                          { x: 1, y: 5 }, { x: 2, y: 5 }, { x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }, { x: 6, y: 5 }],
+              splitters: [], colorChangers: [] },
+            { id: 43, name: "Delay Engineering", description: "Build paths of specific lengths for perfect timing", gridSize: 8,
+              par: 22, undoBonus: 4,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'red', count: 2, delay: 500 }, { id: 'o2', x: 0, y: 5, color: 'blue', count: 2, delay: 500 }],
+              stations: [{ id: 's1', x: 7, y: 3, color: 'purple', required: 2 }, { id: 's2', x: 7, y: 4, color: 'purple', required: 2 }],
+              obstacles: [{ x: 4, y: 0 }, { x: 4, y: 7 }], splitters: [], colorChangers: [] },
+            { id: 44, name: "Free Form Finale", description: "Master level - use Free Draw for precision!", gridSize: 8,
+              par: 28, undoBonus: 5,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 4, color: 'magenta', startDelay: 400 }, { id: 'o3', x: 0, y: 7, color: 'yellow', startDelay: 800 }],
+              stations: [{ id: 's1', x: 7, y: 2, color: 'cyan' }, { id: 's2', x: 7, y: 4, color: 'white' }, { id: 's3', x: 7, y: 6, color: 'green' }],
+              obstacles: [{ x: 2, y: 0 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 5, y: 1 }, { x: 5, y: 4 }, { x: 5, y: 7 }],
+              splitters: [], colorChangers: [] }
         ];
     }
     
@@ -430,7 +465,8 @@ class LightCycleGame {
             showHints: true, 
             devMode: false,
             colorblindMode: false,
-            timeAttackMode: false
+            timeAttackMode: false,
+            freeDrawMode: false  // Free-form drawing: cell-by-cell without auto-pathfinding
         };
         return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
@@ -976,6 +1012,17 @@ class LightCycleGame {
             });
         }
         
+        // Free draw mode toggle - cell-by-cell manual drawing vs A* auto-pathfinding
+        const freeDrawToggle = document.getElementById('free-draw-toggle');
+        if (freeDrawToggle) {
+            freeDrawToggle.addEventListener('change', (e) => {
+                this.settings.freeDrawMode = e.target.checked; this.saveSettings();
+                this.hapticFeedback('selection');
+                this.showToast(e.target.checked ? 'Free Draw ON - manual cell-by-cell paths' : 'Free Draw OFF - auto-pathfinding enabled');
+                this.updateDrawModeIndicator();
+            });
+        }
+        
         document.getElementById('reset-progress-btn').addEventListener('click', () => {
             this.showConfirmDialog('Reset all progress?', 'This cannot be undone.', () => {
                 this.progress = { completedLevels: [], stars: {}, moveHistory: {}, bestTimes: {}, dailyCompleted: {}, dailyStreak: 0, lastDailyDate: null };
@@ -1006,6 +1053,7 @@ class LightCycleGame {
         if (swipeToggle) swipeToggle.checked = this.settings.swipeMode !== false;
         if (colorblindToggle) colorblindToggle.checked = this.settings.colorblindMode;
         if (timeAttackToggle) timeAttackToggle.checked = this.settings.timeAttackMode;
+        if (freeDrawToggle) freeDrawToggle.checked = this.settings.freeDrawMode === true;
         
         window.addEventListener('resize', () => this.resizeCanvas());
         
@@ -1311,8 +1359,14 @@ class LightCycleGame {
         const dy = Math.abs(pos.y - lastPos.y);
         
         if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+            // Adjacent cell - always allow
             if (existingIndex === -1 || this.canCross(pos)) this.addToPath(pos);
+        } else if (this.settings.freeDrawMode) {
+            // Free draw mode: only allow adjacent cells, show hint for non-adjacent
+            this.showToast('Free Draw: tap adjacent cells only', 1000);
+            this.hapticFeedback('error');
         } else {
+            // Auto-pathfinding mode: use A* to find path
             const path = this.findPath(lastPos, pos);
             if (path && path.length > 1) {
                 for (let i = 1; i < path.length; i++) {
@@ -2248,6 +2302,7 @@ class LightCycleGame {
         
         this.showScreen('game-screen');
         this.resizeCanvas();
+        this.updateDrawModeIndicator();
         
         // Start timer for time attack or daily mode
         if (this.settings.timeAttackMode || level.isDaily) {
@@ -2325,6 +2380,44 @@ class LightCycleGame {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
         }, duration);
+    }
+    
+    // Update draw mode indicator on game screen
+    updateDrawModeIndicator() {
+        let indicator = document.getElementById('draw-mode-indicator');
+        
+        // Create indicator if it doesn't exist
+        if (!indicator) {
+            const gameHeader = document.querySelector('#game-screen .game-header');
+            if (!gameHeader) return;
+            
+            indicator = document.createElement('div');
+            indicator.id = 'draw-mode-indicator';
+            indicator.className = 'draw-mode-indicator';
+            indicator.title = 'Toggle in Settings';
+            indicator.addEventListener('click', () => {
+                this.settings.freeDrawMode = !this.settings.freeDrawMode;
+                this.saveSettings();
+                this.hapticFeedback('selection');
+                this.showToast(this.settings.freeDrawMode ? 'Free Draw ON' : 'Auto-Path ON', 1000);
+                this.updateDrawModeIndicator();
+                // Update settings toggle if visible
+                const toggle = document.getElementById('free-draw-toggle');
+                if (toggle) toggle.checked = this.settings.freeDrawMode;
+            });
+            gameHeader.appendChild(indicator);
+        }
+        
+        // Update indicator display
+        if (this.settings.freeDrawMode) {
+            indicator.innerHTML = '✏️ FREE';
+            indicator.classList.add('free-draw-active');
+            indicator.classList.remove('auto-path-active');
+        } else {
+            indicator.innerHTML = '🔀 AUTO';
+            indicator.classList.remove('free-draw-active');
+            indicator.classList.add('auto-path-active');
+        }
     }
     
     showConfirmDialog(title, message, onConfirm) {
@@ -2810,7 +2903,23 @@ class LightCycleGame {
         
         const ctx = this.ctx;
         const lastPos = this.currentPath[this.currentPath.length - 1];
-        const previewPath = this.findPath(lastPos, this.hoverCell);
+        
+        // In free draw mode, only show preview to adjacent cells
+        let previewPath = null;
+        if (this.settings.freeDrawMode) {
+            const dx = Math.abs(this.hoverCell.x - lastPos.x);
+            const dy = Math.abs(this.hoverCell.y - lastPos.y);
+            if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+                // Only show preview to adjacent cells
+                if (!this.isObstacle(this.hoverCell.x, this.hoverCell.y)) {
+                    previewPath = [lastPos, this.hoverCell];
+                }
+            }
+            // If not adjacent, show no preview (user must click adjacent cells)
+        } else {
+            // Auto-pathfinding mode: use A* to show full preview
+            previewPath = this.findPath(lastPos, this.hoverCell);
+        }
         
         if (previewPath && previewPath.length > 1) {
             const color = this.colors[this.currentOutlet.color] || '#00ffff';
