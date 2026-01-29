@@ -18,6 +18,7 @@ class LightCycleGame {
         this.hoverCell = null;
         this.lastRenderTime = 0;
         this.trailParticles = [];
+        this.crashParticles = []; // Explosion particles for crashes
         this.pulsePhase = 0;
         
         // Swipe/gesture state
@@ -278,7 +279,38 @@ class LightCycleGame {
               par: 16, undoBonus: 4,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red', startDelay: 0 }, { id: 'o2', x: 0, y: 4, color: 'blue', startDelay: 500 }, { id: 'o3', x: 0, y: 7, color: 'yellow', startDelay: 1000 }],
               stations: [{ id: 's1', x: 7, y: 3, color: 'white' }],
-              obstacles: [{ x: 4, y: 0 }, { x: 4, y: 7 }], splitters: [], colorChangers: [] }
+              obstacles: [{ x: 4, y: 0 }, { x: 4, y: 7 }], splitters: [], colorChangers: [] },
+            // NEW: Crash vs Merge levels
+            { id: 33, name: "Collision Course", description: "⚠️ Head-on collisions cause crashes!", gridSize: 6,
+              par: 10, undoBonus: 1,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }, { id: 'o2', x: 5, y: 2, color: 'magenta' }],
+              stations: [{ id: 's1', x: 5, y: 0, color: 'cyan' }, { id: 's2', x: 0, y: 4, color: 'magenta' }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 34, name: "Safe Merge", description: "Same direction = safe merge", gridSize: 6,
+              par: 10, undoBonus: 1,
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'blue' }],
+              stations: [{ id: 's1', x: 5, y: 2, color: 'purple' }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 35, name: "Avoid the Crash", description: "Route around potential collisions", gridSize: 7,
+              par: 14, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan' }, { id: 'o2', x: 6, y: 3, color: 'magenta' }],
+              stations: [{ id: 's1', x: 6, y: 0, color: 'cyan' }, { id: 's2', x: 0, y: 6, color: 'magenta' }],
+              obstacles: [{ x: 3, y: 1 }, { x: 3, y: 5 }], splitters: [], colorChangers: [] },
+            { id: 36, name: "Crossing Safely", description: "Perpendicular paths cross without crashing", gridSize: 7,
+              par: 12, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan' }, { id: 'o2', x: 3, y: 0, color: 'magenta' }],
+              stations: [{ id: 's1', x: 6, y: 3, color: 'cyan' }, { id: 's2', x: 3, y: 6, color: 'magenta' }],
+              obstacles: [], splitters: [], colorChangers: [] },
+            { id: 37, name: "Timing Dodge", description: "Use delays to avoid collisions", gridSize: 7,
+              par: 12, undoBonus: 2,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }, { id: 'o2', x: 6, y: 2, color: 'magenta', startDelay: 800 }],
+              stations: [{ id: 's1', x: 6, y: 4, color: 'cyan' }, { id: 's2', x: 0, y: 4, color: 'magenta' }],
+              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
+            { id: 38, name: "Crash Course Master", description: "Navigate multiple crash hazards", gridSize: 8,
+              par: 20, undoBonus: 4,
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'red' }, { id: 'o2', x: 7, y: 2, color: 'blue' }, { id: 'o3', x: 0, y: 5, color: 'yellow' }],
+              stations: [{ id: 's1', x: 7, y: 5, color: 'red' }, { id: 's2', x: 0, y: 0, color: 'blue' }, { id: 's3', x: 7, y: 7, color: 'yellow' }],
+              obstacles: [{ x: 4, y: 3 }, { x: 4, y: 4 }], splitters: [], colorChangers: [] }
         ];
     }
     
@@ -344,6 +376,16 @@ class LightCycleGame {
                     gainNode.gain.setValueAtTime(0.08, this.audioContext.currentTime);
                     oscillator.start();
                     oscillator.stop(this.audioContext.currentTime + 0.25);
+                    break;
+                case 'crash':
+                    // Dramatic crash sound - low rumble with noise burst
+                    oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(40, this.audioContext.currentTime + 0.3);
+                    oscillator.type = 'sawtooth';
+                    gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.4);
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 0.4);
                     break;
                 case 'swipe':
                     oscillator.frequency.setValueAtTime(1200, this.audioContext.currentTime);
@@ -1600,6 +1642,7 @@ class LightCycleGame {
         this.cycles = [];
         this.pendingCycles = []; // Cycles waiting to be released
         this.stationArrivals = {}; // Track arrivals for multi-train station requirements
+        this.crashParticles = []; // Reset crash explosion particles
         
         // Create cycles for each outlet, including multi-train support
         level.outlets.forEach(outlet => {
@@ -1718,8 +1761,20 @@ class LightCycleGame {
             }
         });
         
-        // Check for merges
+        // Check for merges and crashes
         this.checkMerges();
+        
+        // Check if any cycles crashed
+        const anyCrashed = this.cycles.some(c => c.crashed);
+        if (anyCrashed) {
+            // Let particles animate for a bit before stopping
+            this.isRunning = false;
+            // Continue rendering crash particles
+            if (this.crashParticles.length > 0) {
+                requestAnimationFrame(() => this.animateCrashParticles());
+            }
+            return;
+        }
         
         if (!allFinished) {
             requestAnimationFrame(() => this.animateCycles());
@@ -1728,11 +1783,19 @@ class LightCycleGame {
         }
     }
     
+    // Continue animating just the crash particles after a crash
+    animateCrashParticles() {
+        this.render();
+        if (this.crashParticles.length > 0) {
+            requestAnimationFrame(() => this.animateCrashParticles());
+        }
+    }
+    
     checkMerges() {
         for (let i = 0; i < this.cycles.length; i++) {
             for (let j = i + 1; j < this.cycles.length; j++) {
                 const c1 = this.cycles[i], c2 = this.cycles[j];
-                if (!c1.active || !c2.active || c1.merged || c2.merged) continue;
+                if (!c1.active || !c2.active || c1.merged || c2.merged || c1.crashed || c2.crashed) continue;
                 
                 const idx1 = Math.floor(c1.progress);
                 const idx2 = Math.floor(c2.progress);
@@ -1743,32 +1806,127 @@ class LightCycleGame {
                     const key = `${p1.x},${p1.y}`;
                     const junction = this.junctions[key];
                     
+                    // Get directions for both cycles
+                    const dir1 = idx1 < c1.path.length - 1 ? this.getDirection(p1, c1.path[idx1 + 1]) : null;
+                    const dir2 = idx2 < c2.path.length - 1 ? this.getDirection(p2, c2.path[idx2 + 1]) : null;
+                    
+                    // Also get entry directions (where they came from)
+                    const entryDir1 = idx1 > 0 ? this.getDirection(c1.path[idx1 - 1], p1) : null;
+                    const entryDir2 = idx2 > 0 ? this.getDirection(c2.path[idx2 - 1], p2) : null;
+                    
                     // Check if this is a junction with priority settings
                     if (junction && junction.paths.length > 1) {
-                        const configs = this.getJunctionConfigs(junction.paths);
-                        const activeConfig = configs[junction.activeConfig];
-                        
-                        // Check if cycles are crossing (different directions) vs merging (same direction)
-                        const dir1 = idx1 < c1.path.length - 1 ? this.getDirection(p1, c1.path[idx1 + 1]) : null;
-                        const dir2 = idx2 < c2.path.length - 1 ? this.getDirection(p2, c2.path[idx2 + 1]) : null;
-                        
-                        // If cycles are going perpendicular directions, they're crossing - check priority
+                        // If cycles are going perpendicular directions, they're crossing
                         if (dir1 && dir2 && !this.areSameAxis(dir1, dir2)) {
-                            // Priority outlet passes through, other waits (in this simple impl, we just let both pass)
-                            // For now, crossing paths don't merge - they pass through each other
+                            // Crossing paths pass through each other without interaction
                             continue;
                         }
                     }
                     
-                    // Same location, merge the colors
-                    const mixKey = c1.color + '+' + c2.color;
-                    const newColor = this.colorMixing[mixKey] || c1.color;
-                    c1.color = newColor;
-                    c2.active = false;
-                    c2.merged = true;
-                    this.hapticFeedback('medium');
+                    // Determine interaction type: CRASH, MERGE, or CROSS
+                    const interactionType = this.getCollisionType(c1, c2, idx1, idx2, dir1, dir2, entryDir1, entryDir2);
+                    
+                    if (interactionType === 'crash') {
+                        // HEAD-ON COLLISION - Both cycles crash!
+                        c1.active = false;
+                        c2.active = false;
+                        c1.crashed = true;
+                        c2.crashed = true;
+                        
+                        // Create crash explosion effect
+                        const crashX = p1.x * this.cellSize + this.cellSize / 2;
+                        const crashY = p1.y * this.cellSize + this.cellSize / 2;
+                        this.createCrashExplosion(crashX, crashY, c1.color, c2.color);
+                        
+                        this.playSound('crash');
+                        this.hapticFeedback('heavy');
+                        this.showToast('💥 Head-on collision!', 'error');
+                        
+                    } else if (interactionType === 'merge') {
+                        // SAME DIRECTION - Merge the colors
+                        const mixKey = c1.color + '+' + c2.color;
+                        const newColor = this.colorMixing[mixKey] || c1.color;
+                        c1.color = newColor;
+                        c2.active = false;
+                        c2.merged = true;
+                        this.hapticFeedback('medium');
+                        
+                    } else if (interactionType === 'cross') {
+                        // PERPENDICULAR CROSSING - Mix colors but both continue
+                        // Only mix if they're actually at the exact same progress point
+                        const progress1 = c1.progress % 1;
+                        const progress2 = c2.progress % 1;
+                        if (Math.abs(progress1 - progress2) < 0.3) {
+                            // Close enough - mix colors for both
+                            const mixKey = c1.color + '+' + c2.color;
+                            const newColor = this.colorMixing[mixKey];
+                            if (newColor) {
+                                c1.color = newColor;
+                                c2.color = newColor;
+                                this.hapticFeedback('light');
+                            }
+                        }
+                        // Both continue on their paths
+                    }
                 }
             }
+        }
+    }
+    
+    // Determine the type of collision between two cycles
+    getCollisionType(c1, c2, idx1, idx2, dir1, dir2, entryDir1, entryDir2) {
+        // If either has no next direction (at end of path), can't crash
+        if (!dir1 || !dir2) {
+            // One is stopping - merge instead of crash
+            return 'merge';
+        }
+        
+        // Check if directions are perpendicular (crossing)
+        if (!this.areSameAxis(dir1, dir2)) {
+            return 'cross';
+        }
+        
+        // Directions are on the same axis - check if head-on or same direction
+        // Head-on: directions are opposite (one going left, other going right)
+        if (dir1 === this.getOppositeDirection(dir2)) {
+            return 'crash';
+        }
+        
+        // Same direction: merge
+        if (dir1 === dir2) {
+            return 'merge';
+        }
+        
+        // Check entry directions for edge case (T-intersection collision)
+        // If they entered from opposite sides and are now at same cell
+        if (entryDir1 && entryDir2 && entryDir1 === this.getOppositeDirection(entryDir2)) {
+            return 'crash';
+        }
+        
+        // Default to merge for any other case
+        return 'merge';
+    }
+    
+    // Create explosion particle effect at crash site
+    createCrashExplosion(x, y, color1, color2) {
+        const particleCount = 20;
+        const colors = [this.colors[color1] || '#ff0000', this.colors[color2] || '#00ffff', '#ffffff', '#ffff00'];
+        
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.5;
+            const speed = 2 + Math.random() * 4;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            this.crashParticles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1.0,
+                decay: 0.02 + Math.random() * 0.02,
+                size: 4 + Math.random() * 6,
+                color: color
+            });
         }
     }
     
@@ -1783,6 +1941,15 @@ class LightCycleGame {
     finishSimulation(failed) {
         this.isRunning = false;
         const level = this.levels[this.currentLevel];
+        
+        // Check if any cycles crashed
+        const anyCrashed = this.cycles.some(c => c.crashed);
+        
+        if (anyCrashed) {
+            // Crash already handled with sound/haptic in checkMerges
+            // Just show failure state
+            return;
+        }
         
         if (failed) {
             this.playSound('fail');
@@ -2391,6 +2558,9 @@ class LightCycleGame {
         
         // Draw particles
         this.drawTrailParticles();
+        
+        // Draw crash explosion particles
+        this.drawCrashParticles();
     }
     
     drawGrid() {
@@ -2713,6 +2883,39 @@ class LightCycleGame {
             ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
             ctx.fill();
         });
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+    }
+    
+    drawCrashParticles() {
+        const ctx = this.ctx;
+        
+        // Update and draw crash particles
+        for (let i = this.crashParticles.length - 1; i >= 0; i--) {
+            const p = this.crashParticles[i];
+            
+            // Update position
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.1; // gravity
+            p.life -= p.decay;
+            
+            // Remove dead particles
+            if (p.life <= 0) {
+                this.crashParticles.splice(i, 1);
+                continue;
+            }
+            
+            // Draw particle
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 15 * p.life;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
     }
@@ -3044,3 +3247,4 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
+
