@@ -568,6 +568,7 @@ body {
     display: flex;
     gap: 10px;
     padding: 12px 0;
+    align-items: stretch;
 }
 
 .control-btn {
@@ -583,6 +584,19 @@ body {
     transition: all 0.15s var(--spring-smooth);
     border-radius: 10px;
     text-transform: uppercase;
+}
+
+.control-btn.small {
+    flex: 0 0 auto;
+    padding: 14px 16px;
+    font-size: 1.1rem;
+    min-width: 54px;
+}
+
+.control-btn.small .hint-count {
+    font-size: 0.7rem;
+    vertical-align: super;
+    margin-left: 2px;
 }
 
 .control-btn:active {
@@ -602,6 +616,22 @@ body {
 .control-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+/* Eraser button active state */
+#eraser-btn.active {
+    background: rgba(255, 100, 100, 0.3);
+    border-color: #ff6666;
+    color: #ff6666;
+    box-shadow: 0 0 15px rgba(255, 100, 100, 0.4);
+}
+
+/* Hint button active state */
+#hint-btn.active {
+    background: rgba(255, 255, 0, 0.2);
+    border-color: #ffff00;
+    color: #ffff00;
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.4);
 }
 
 .level-message {
