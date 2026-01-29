@@ -922,6 +922,288 @@ class LightCycleGame {
         }
     }
     
+    // ==================== COMMUNITY LEVELS ====================
+    async publishLevel(levelData, name, description) {
+        if (!this.cloudUserId) {
+            this.showToast('Enable Cloud Sync first', 2000);
+            return null;
+        }
+        
+        try {
+            const creatorName = localStorage.getItem('lightcycle_creator_name') || 'Anonymous';
+            
+            const response = await fetch(`${this.supabaseUrl}/rest/v1/community_levels`, {
+                method: 'POST',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                    creator_id: this.cloudUserId,
+                    creator_name: creatorName,
+                    level_data: levelData,
+                    name: name,
+                    description: description || ''
+                })
+            });
+            
+            const result = await response.json();
+            if (result && result[0]) {
+                this.showToast('🌍 Level published!', 2000);
+                return result[0].id;
+            }
+            return null;
+        } catch (error) {
+            console.error('Publish error:', error);
+            this.showToast('Failed to publish level', 2000);
+            return null;
+        }
+    }
+    
+    async fetchCommunityLevels(sortBy = 'created_at', limit = 20) {
+        try {
+            const orderParam = sortBy === 'likes' ? 'likes.desc' : 
+                              sortBy === 'plays' ? 'plays.desc' : 'created_at.desc';
+            
+            const response = await fetch(
+                `${this.supabaseUrl}/rest/v1/community_levels?order=${orderParam}&limit=${limit}`, {
+                method: 'GET',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Fetch community levels error:', error);
+            return [];
+        }
+    }
+    
+    async incrementLevelPlays(levelId) {
+        try {
+            // First get current plays count
+            const getResponse = await fetch(
+                `${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}&select=plays`, {
+                method: 'GET',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await getResponse.json();
+            const currentPlays = data[0]?.plays || 0;
+            
+            // Update with incremented value
+            await fetch(`${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({ plays: currentPlays + 1 })
+            });
+        } catch (error) {
+            console.error('Increment plays error:', error);
+        }
+    }
+    
+    async toggleLevelLike(levelId) {
+        if (!this.cloudUserId) {
+            this.showToast('Enable Cloud Sync to like levels', 2000);
+            return;
+        }
+        
+        try {
+            // Check if already liked
+            const checkResponse = await fetch(
+                `${this.supabaseUrl}/rest/v1/level_likes?user_id=eq.${this.cloudUserId}&level_id=eq.${levelId}`, {
+                method: 'GET',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const existing = await checkResponse.json();
+            
+            // Get current likes count
+            const levelResponse = await fetch(
+                `${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}&select=likes`, {
+                method: 'GET',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const levelData = await levelResponse.json();
+            const currentLikes = levelData[0]?.likes || 0;
+            
+            if (existing.length > 0) {
+                // Unlike - remove from likes table
+                await fetch(
+                    `${this.supabaseUrl}/rest/v1/level_likes?user_id=eq.${this.cloudUserId}&level_id=eq.${levelId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // Decrement likes count
+                await fetch(`${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ likes: Math.max(0, currentLikes - 1) })
+                });
+                
+                this.showToast('💔 Unliked', 1000);
+                return false;
+            } else {
+                // Like - add to likes table
+                await fetch(`${this.supabaseUrl}/rest/v1/level_likes`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_id: this.cloudUserId, level_id: levelId })
+                });
+                
+                // Increment likes count
+                await fetch(`${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ likes: currentLikes + 1 })
+                });
+                
+                this.showToast('❤️ Liked!', 1000);
+                return true;
+            }
+        } catch (error) {
+            console.error('Like toggle error:', error);
+            return null;
+        }
+    }
+    
+    async showCommunityBrowser() {
+        this.showScreen('community-screen');
+        await this.loadCommunityLevels('newest');
+    }
+    
+    async loadCommunityLevels(sortBy) {
+        const container = document.getElementById('community-levels-grid');
+        if (!container) return;
+        
+        container.innerHTML = '<div class="loading-spinner">Loading...</div>';
+        
+        const sortMap = {
+            'newest': 'created_at',
+            'popular': 'plays',
+            'liked': 'likes'
+        };
+        
+        const levels = await this.fetchCommunityLevels(sortMap[sortBy] || 'created_at');
+        
+        if (levels.length === 0) {
+            container.innerHTML = '<div class="no-levels">No community levels yet. Be the first to publish!</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        levels.forEach(level => {
+            const tile = document.createElement('div');
+            tile.className = 'level-tile community-level';
+            
+            const gridSize = level.level_data?.gridSize || '?';
+            const outlets = level.level_data?.outlets?.length || 0;
+            const stations = level.level_data?.stations?.length || 0;
+            
+            tile.innerHTML = `
+                <span class="level-number">🌍</span>
+                <span class="level-name">${this.escapeHtml(level.name)}</span>
+                <span class="community-stats">
+                    ▶️ ${level.plays || 0} • ❤️ ${level.likes || 0}
+                </span>
+                <span class="level-stars">by ${this.escapeHtml(level.creator_name || 'Anonymous')}</span>
+                <span class="community-meta">${gridSize}×${gridSize} • ${outlets}→${stations}</span>
+            `;
+            
+            tile.addEventListener('click', () => {
+                this.playCommunityLevel(level);
+            });
+            
+            // Long press for like
+            let pressTimer;
+            tile.addEventListener('touchstart', () => {
+                pressTimer = setTimeout(() => {
+                    this.toggleLevelLike(level.id).then(() => this.loadCommunityLevels(sortBy));
+                }, 500);
+            });
+            tile.addEventListener('touchend', () => clearTimeout(pressTimer));
+            tile.addEventListener('touchmove', () => clearTimeout(pressTimer));
+            
+            container.appendChild(tile);
+        });
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    playCommunityLevel(levelRecord) {
+        const level = levelRecord.level_data;
+        
+        // Increment play count
+        this.incrementLevelPlays(levelRecord.id);
+        
+        // Set up as custom level
+        this.currentLevel = -2; // Special marker for community level
+        this.currentCommunityLevel = levelRecord;
+        this.currentLevelData = level;
+        this.level = level;
+        
+        document.getElementById('current-level-name').textContent = levelRecord.name;
+        document.getElementById('level-message').textContent = levelRecord.description || `by ${levelRecord.creator_name || 'Anonymous'}`;
+        
+        this.gridSize = level.gridSize;
+        this.paths = {};
+        this.currentPath = null;
+        this.currentOutlet = null;
+        this.cycles = [];
+        this.isRunning = false;
+        this.trailParticles = [];
+        this.undoStack = [];
+        this.undoCount = 0;
+        
+        this.showScreen('game-screen');
+        this.resizeCanvas();
+        this.startTimer();
+        
+        this.showToast(`🌍 ${levelRecord.name}`, 2000);
+    }
+    
     // ==================== COLORBLIND SUPPORT ====================
     getColorLabel(colorName) {
         const labels = {
@@ -1344,6 +1626,26 @@ class LightCycleGame {
             this.playSound('click'); this.hapticFeedback('light');
             this.showScreen('level-select');
         });
+        
+        // Community levels button
+        const communityBtn = document.getElementById('community-btn');
+        if (communityBtn) {
+            communityBtn.addEventListener('click', (e) => {
+                this.animateButtonPress(e.target);
+                this.playSound('click'); this.hapticFeedback('light');
+                this.showCommunityBrowser();
+            });
+        }
+        
+        // Community tab buttons
+        document.querySelectorAll('.community-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.community-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                this.loadCommunityLevels(e.target.dataset.sort);
+            });
+        });
+        
         document.getElementById('how-to-play-btn').addEventListener('click', (e) => {
             this.animateButtonPress(e.target);
             this.playSound('click'); this.hapticFeedback('light');
@@ -1433,6 +1735,17 @@ class LightCycleGame {
                 this.playSound('click');
                 this.hapticFeedback('light');
                 this.shareCurrentLevel();
+            });
+        }
+        
+        // Publish to community button
+        const publishBtn = document.getElementById('publish-level-btn');
+        if (publishBtn) {
+            publishBtn.addEventListener('click', (e) => {
+                this.animateButtonPress(e.target);
+                this.playSound('click');
+                this.hapticFeedback('medium');
+                this.showPublishDialog();
             });
         }
         
@@ -3001,6 +3314,77 @@ class LightCycleGame {
         requestAnimationFrame(() => dialog.classList.add('active'));
     }
     
+    showPublishDialog() {
+        if (!this.settings.cloudSync) {
+            this.showToast('Enable Cloud Sync in Settings first', 2500);
+            return;
+        }
+        
+        if (!this.editorLevel || !this.editorLevel.outlets || this.editorLevel.outlets.length === 0) {
+            this.showToast('Add some outlets first!', 2000);
+            return;
+        }
+        
+        if (!this.editorLevel.stations || this.editorLevel.stations.length === 0) {
+            this.showToast('Add some stations first!', 2000);
+            return;
+        }
+        
+        const creatorName = localStorage.getItem('lightcycle_creator_name') || '';
+        
+        const dialog = document.createElement('div');
+        dialog.className = 'confirm-dialog publish-dialog';
+        dialog.innerHTML = `
+            <div class="confirm-content">
+                <h3>🌍 Publish to Community</h3>
+                <div class="publish-form">
+                    <input type="text" id="publish-name" placeholder="Level Name" maxlength="30" required>
+                    <input type="text" id="publish-description" placeholder="Description (optional)" maxlength="100">
+                    <input type="text" id="publish-creator" placeholder="Your Name" value="${this.escapeHtml(creatorName)}" maxlength="20">
+                </div>
+                <p class="publish-info">Grid: ${this.editorLevel.gridSize}×${this.editorLevel.gridSize} • ${this.editorLevel.outlets?.length || 0} outlets • ${this.editorLevel.stations?.length || 0} stations</p>
+                <div class="confirm-buttons">
+                    <button class="neon-button cancel">Cancel</button>
+                    <button class="neon-button confirm publish">Publish</button>
+                </div>
+            </div>
+        `;
+        
+        dialog.querySelector('.cancel').addEventListener('click', () => {
+            this.hapticFeedback('light');
+            dialog.remove();
+        });
+        
+        dialog.querySelector('.publish').addEventListener('click', async () => {
+            const name = document.getElementById('publish-name').value.trim();
+            const description = document.getElementById('publish-description').value.trim();
+            const creator = document.getElementById('publish-creator').value.trim();
+            
+            if (!name) {
+                this.showToast('Please enter a level name', 1500);
+                return;
+            }
+            
+            // Save creator name for future
+            if (creator) {
+                localStorage.setItem('lightcycle_creator_name', creator);
+            }
+            
+            this.hapticFeedback('medium');
+            dialog.remove();
+            
+            // Publish the level
+            const levelData = { ...this.editorLevel };
+            await this.publishLevel(levelData, name, description);
+        });
+        
+        document.getElementById('game-container').appendChild(dialog);
+        requestAnimationFrame(() => {
+            dialog.classList.add('active');
+            document.getElementById('publish-name').focus();
+        });
+    }
+    
     showLevelCompleteModal(stars, time = 0, isDaily = false, isShared = false) {
         const modal = document.getElementById('level-complete-modal');
         const starsContainer = document.getElementById('stars-container');
@@ -3908,6 +4292,7 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
+
 
 
 
