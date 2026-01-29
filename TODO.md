@@ -135,7 +135,7 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ---
 
-### 8. [ ] Level Packs / Themed Regions
+### 8. [x] Level Packs / Themed Regions
 **Description:** Organize levels into themed collections (like Trainyard's Canadian provinces).
 
 **Details:**
