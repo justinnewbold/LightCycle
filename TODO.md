@@ -98,7 +98,7 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ## Priority 2: Drawing & UX
 
-### 6. [ ] Free-Form Drawing Mode
+### 6. [x] Free-Form Drawing Mode
 **Description:** Optional drag-to-draw mode (vs current click-path A* system).
 
 **Details:**
