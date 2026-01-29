@@ -21,6 +21,17 @@ class LightCycleGame {
         this.crashParticles = []; // Explosion particles for crashes
         this.pulsePhase = 0;
         
+        // Eraser mode state
+        this.eraserMode = false;
+        this.isErasing = false;
+        this.erasingOutletId = null;
+        
+        // Hint system state
+        this.showingHint = false;
+        this.hintPath = null;
+        this.hintOutletId = null;
+        this.hintTimeout = null;
+        
         // Swipe/gesture state
         this.touchStart = null;
         this.touchCurrent = null;
@@ -697,7 +708,9 @@ class LightCycleGame {
             bestTimes: {},
             dailyCompleted: {},
             dailyStreak: 0,
-            lastDailyDate: null
+            lastDailyDate: null,
+            hints: 3,  // Start with 3 free hints
+            hintsUsedPerLevel: {}  // Track hints used per level
         };
         return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
@@ -1384,6 +1397,19 @@ class LightCycleGame {
             this.animateButtonPress(e.target);
             this.playSound('click'); this.hapticFeedback('medium'); this.clearAllPaths();
         });
+        
+        // Eraser mode toggle
+        document.getElementById('eraser-btn').addEventListener('click', (e) => {
+            this.animateButtonPress(e.target);
+            this.toggleEraserMode();
+        });
+        
+        // Hint button
+        document.getElementById('hint-btn').addEventListener('click', (e) => {
+            this.animateButtonPress(e.target);
+            this.useHint();
+        });
+        
         document.getElementById('reset-level-btn').addEventListener('click', (e) => {
             this.animateButtonPress(e.currentTarget);
             this.playSound('click'); this.hapticFeedback('medium'); this.resetLevel();
@@ -1571,6 +1597,8 @@ class LightCycleGame {
         this.touchCurrent = this.touchStart;
         this.isDragging = false;
         this.isSwipeDrawing = false;
+        this.isErasing = false;
+        this.erasingOutletId = null;
         this.dragPath = [];
         this.lastDragCell = null;
         this.isLongPress = false;
@@ -1582,8 +1610,29 @@ class LightCycleGame {
             this.showContextMenu(pos);
         }, this.longPressDuration);
         
-        // Check if starting on an outlet
         const level = this.levels[this.currentLevel];
+        
+        // ERASER MODE: Check if starting on any existing path
+        if (this.eraserMode) {
+            for (const outletId in this.paths) {
+                const path = this.paths[outletId];
+                const pathIndex = path.findIndex(p => p.x === pos.x && p.y === pos.y);
+                if (pathIndex > 0) { // Found a path point (not the outlet itself at index 0)
+                    this.saveState();
+                    this.isErasing = true;
+                    this.erasingOutletId = outletId;
+                    this.lastDragCell = pos;
+                    this.playSound('undo');
+                    this.hapticFeedback('light');
+                    return;
+                }
+            }
+            // If eraser mode but didn't hit a path, just track position
+            this.hoverCell = pos;
+            return;
+        }
+        
+        // Check if starting on an outlet (normal drawing mode)
         const outlet = level.outlets.find(o => o.x === pos.x && o.y === pos.y);
         
         if (outlet) {
@@ -1617,6 +1666,30 @@ class LightCycleGame {
         // Start dragging
         if (distance > this.swipeThreshold) {
             this.isDragging = true;
+        }
+        
+        // ERASER MODE: Erase path backward as we drag
+        if (this.isDragging && this.isErasing && this.erasingOutletId && pos) {
+            const path = this.paths[this.erasingOutletId];
+            if (path && path.length > 1) {
+                if (!this.lastDragCell || this.lastDragCell.x !== pos.x || this.lastDragCell.y !== pos.y) {
+                    // Find if we're on this path (going backward)
+                    const pathIndex = path.findIndex(p => p.x === pos.x && p.y === pos.y);
+                    if (pathIndex > 0) {
+                        // Erase everything after this point
+                        const prevLength = path.length;
+                        path.splice(pathIndex + 1);
+                        if (path.length < prevLength) {
+                            this.playSound('undo');
+                            this.hapticFeedback('light');
+                            this.updateJunctions();
+                        }
+                    }
+                    this.lastDragCell = pos;
+                }
+            }
+            this.touchCurrent = { x: e.clientX, y: e.clientY };
+            return;
         }
         
         // Swipe drawing mode
@@ -1662,6 +1735,13 @@ class LightCycleGame {
         
         const pos = e ? this.getGridPosition(e.clientX, e.clientY) : this.hoverCell;
         
+        // If was erasing, just finish up
+        if (this.isErasing) {
+            this.updateJunctions();
+            this.resetTouchState();
+            return;
+        }
+        
         // If was swipe drawing, finish path
         if (this.isSwipeDrawing && this.currentPath) {
             // Check if ended on a station
@@ -1684,6 +1764,8 @@ class LightCycleGame {
         this.touchCurrent = null;
         this.isDragging = false;
         this.isSwipeDrawing = false;
+        this.isErasing = false;
+        this.erasingOutletId = null;
         this.dragPath = [];
         this.lastDragCell = null;
         this.isLongPress = false;
@@ -2054,6 +2136,170 @@ class LightCycleGame {
         this.trailParticles = [];
         this.junctions = {};
         this.hapticFeedback('medium');
+        // Clear any showing hint
+        this.hideHint();
+    }
+    
+    // ==================== ERASER MODE ====================
+    toggleEraserMode() {
+        this.eraserMode = !this.eraserMode;
+        this.playSound('click');
+        this.hapticFeedback(this.eraserMode ? 'medium' : 'light');
+        this.updateEraserButton();
+        
+        // Show feedback message
+        const msg = document.getElementById('level-message');
+        if (msg) {
+            msg.textContent = this.eraserMode ? '🧹 ERASER MODE - Drag backward on paths to erase' : '✏️ DRAW MODE';
+            msg.style.opacity = '1';
+            setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+        }
+    }
+    
+    updateEraserButton() {
+        const btn = document.getElementById('eraser-btn');
+        if (btn) {
+            btn.classList.toggle('active', this.eraserMode);
+            btn.style.background = this.eraserMode ? 'rgba(255, 100, 100, 0.4)' : '';
+            btn.style.borderColor = this.eraserMode ? '#ff6666' : '';
+            btn.style.boxShadow = this.eraserMode ? '0 0 15px rgba(255, 100, 100, 0.5)' : '';
+        }
+    }
+    
+    // ==================== HINT SYSTEM ====================
+    useHint() {
+        const level = this.levels[this.currentLevel];
+        if (!level) return;
+        
+        // If already showing hint, hide it
+        if (this.showingHint) {
+            this.hideHint();
+            return;
+        }
+        
+        // Check if player has hints available
+        const hintsAvailable = this.progress.hints || 0;
+        if (hintsAvailable <= 0) {
+            this.showToast('💡 No hints! Complete levels to earn more.', 2500);
+            this.hapticFeedback('fail');
+            return;
+        }
+        
+        // Generate hint for first outlet without a complete path to station
+        const hint = this.generateHint(level);
+        if (!hint) {
+            this.showToast('🤔 No hint available for current state', 2000);
+            return;
+        }
+        
+        // Deduct hint
+        this.progress.hints = hintsAvailable - 1;
+        if (!this.progress.hintsUsedPerLevel) this.progress.hintsUsedPerLevel = {};
+        this.progress.hintsUsedPerLevel[level.id] = (this.progress.hintsUsedPerLevel[level.id] || 0) + 1;
+        this.saveProgress();
+        
+        // Show the hint
+        this.showingHint = true;
+        this.hintPath = hint.path;
+        this.hintOutletId = hint.outletId;
+        
+        this.playSound('click');
+        this.hapticFeedback('medium');
+        this.updateHintButton();
+        this.showToast(`💡 Hint! (${this.progress.hints} left)`, 2000);
+        
+        // Auto-hide hint after 6 seconds
+        if (this.hintTimeout) clearTimeout(this.hintTimeout);
+        this.hintTimeout = setTimeout(() => {
+            if (this.showingHint) this.hideHint();
+        }, 6000);
+    }
+    
+    hideHint() {
+        this.showingHint = false;
+        this.hintPath = null;
+        this.hintOutletId = null;
+        if (this.hintTimeout) {
+            clearTimeout(this.hintTimeout);
+            this.hintTimeout = null;
+        }
+        this.updateHintButton();
+    }
+    
+    generateHint(level) {
+        // Find an outlet that doesn't have a complete path to its matching station
+        for (const outlet of level.outlets) {
+            const existingPath = this.paths[outlet.id];
+            
+            // Check if this outlet already has a path to a valid station
+            if (existingPath && existingPath.length > 1) {
+                const endPos = existingPath[existingPath.length - 1];
+                const reachesStation = level.stations.some(s => s.x === endPos.x && s.y === endPos.y);
+                if (reachesStation) continue; // This outlet is done
+            }
+            
+            // Find a matching station (same color or can mix to it)
+            for (const station of level.stations) {
+                // Simple check: same color or color could contribute via mixing
+                if (station.color === outlet.color || this.canColorContributeTo(outlet.color, station.color)) {
+                    // Generate a path from outlet to station
+                    const path = this.findPath(
+                        { x: outlet.x, y: outlet.y },
+                        { x: station.x, y: station.y }
+                    );
+                    
+                    if (path && path.length > 1) {
+                        return { outletId: outlet.id, path: path, outlet: outlet, station: station };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
+    canColorContributeTo(sourceColor, targetColor) {
+        // Check if source color can contribute to target via mixing
+        if (sourceColor === targetColor) return true;
+        const mixMap = {
+            'red': ['purple', 'orange', 'white'],
+            'blue': ['purple', 'green', 'white', 'cyan'],
+            'yellow': ['orange', 'green', 'white'],
+            'cyan': ['white', 'green'],
+            'magenta': ['white', 'purple'],
+            'green': ['white'],
+            'orange': ['white'],
+            'purple': ['white']
+        };
+        return (mixMap[sourceColor] || []).includes(targetColor);
+    }
+    
+    updateHintButton() {
+        const btn = document.getElementById('hint-btn');
+        if (btn) {
+            const hints = this.progress.hints || 0;
+            btn.innerHTML = `💡<span class="hint-count">${hints}</span>`;
+            btn.classList.toggle('active', this.showingHint);
+            btn.style.opacity = hints > 0 || this.showingHint ? '1' : '0.5';
+        }
+    }
+    
+    // Award hints on level completion
+    awardHintsForCompletion(stars, isFirstCompletion) {
+        let hintsEarned = 0;
+        
+        // Award based on stars
+        if (stars >= 3) hintsEarned = 2;
+        else if (stars >= 2) hintsEarned = 1;
+        
+        // Bonus hint for first-time completion
+        if (isFirstCompletion) hintsEarned += 1;
+        
+        if (hintsEarned > 0) {
+            this.progress.hints = (this.progress.hints || 0) + hintsEarned;
+            this.saveProgress();
+        }
+        
+        return hintsEarned;
     }
     
     // ==================== PATHFINDING ====================
@@ -2527,8 +2773,9 @@ class LightCycleGame {
         // Handle daily challenge
         if (level && level.isDaily) {
             const stars = this.calculateStars(level);
+            const hintsEarned = this.awardHintsForCompletion(stars, true);
             this.completeDailyChallenge(stars, elapsedTime);
-            this.showLevelCompleteModal(stars, elapsedTime, true);
+            this.showLevelCompleteModal(stars, elapsedTime, true, false, hintsEarned);
             this.celebrateConfetti();
             return;
         }
@@ -2536,14 +2783,16 @@ class LightCycleGame {
         // Handle shared level
         if (level && level.isShared) {
             const stars = this.calculateStars(level);
-            this.showLevelCompleteModal(stars, elapsedTime, false, true);
+            this.showLevelCompleteModal(stars, elapsedTime, false, true, 0);
             this.celebrateConfetti();
             return;
         }
         
         // Regular level handling
         if (this.currentLevel >= 0) {
-            if (!this.progress.completedLevels.includes(this.currentLevel)) {
+            const isFirstCompletion = !this.progress.completedLevels.includes(this.currentLevel);
+            
+            if (isFirstCompletion) {
                 this.progress.completedLevels.push(this.currentLevel);
             }
             
@@ -2561,8 +2810,11 @@ class LightCycleGame {
                 }
             }
             
+            // Award hints for completion
+            const hintsEarned = this.awardHintsForCompletion(stars, isFirstCompletion);
+            
             this.saveProgress();
-            this.showLevelCompleteModal(stars, elapsedTime);
+            this.showLevelCompleteModal(stars, elapsedTime, false, false, hintsEarned);
             this.celebrateConfetti();
         }
     }
@@ -2848,6 +3100,12 @@ class LightCycleGame {
         this.undoCount = 0;
         this.junctions = {}; // Reset junctions
         
+        // Reset eraser and hint states
+        this.eraserMode = false;
+        this.isErasing = false;
+        this.erasingOutletId = null;
+        this.hideHint();
+        
         // Reset timer
         this.stopTimer();
         this.timerStart = null;
@@ -2855,6 +3113,8 @@ class LightCycleGame {
         this.showScreen('game-screen');
         this.resizeCanvas();
         this.updateDrawModeIndicator();
+        this.updateEraserButton();
+        this.updateHintButton();
         
         // Start timer for time attack or daily mode
         if (this.settings.timeAttackMode || level.isDaily) {
@@ -3001,7 +3261,7 @@ class LightCycleGame {
         requestAnimationFrame(() => dialog.classList.add('active'));
     }
     
-    showLevelCompleteModal(stars, time = 0, isDaily = false, isShared = false) {
+    showLevelCompleteModal(stars, time = 0, isDaily = false, isShared = false, hintsEarned = 0) {
         const modal = document.getElementById('level-complete-modal');
         const starsContainer = document.getElementById('stars-container');
         
@@ -3028,6 +3288,11 @@ class LightCycleGame {
         // Add time if tracked
         if (time > 0) {
             message += ` ⏱️ ${this.formatTime(time)}`;
+        }
+        
+        // Add hints earned
+        if (hintsEarned > 0) {
+            message += ` 💡+${hintsEarned}`;
         }
         
         document.getElementById('complete-message').textContent = message;
@@ -3184,6 +3449,11 @@ class LightCycleGame {
         // Draw junctions (after paths so they appear on top)
         this.drawJunctions();
         
+        // Draw hint path (if showing)
+        if (this.showingHint && this.hintPath) {
+            this.drawHintPath();
+        }
+        
         // Draw path preview
         if (this.currentPath && this.currentOutlet && this.hoverCell && !this.isRunning) {
             this.drawPathPreview();
@@ -3192,6 +3462,11 @@ class LightCycleGame {
         // Draw hover indicator
         if (this.hoverCell && !this.isRunning) {
             this.drawHoverIndicator(this.hoverCell);
+        }
+        
+        // Draw eraser cursor
+        if (this.eraserMode && this.hoverCell && !this.isRunning) {
+            this.drawEraserCursor(this.hoverCell);
         }
         
         // Draw outlets and stations
@@ -3448,6 +3723,101 @@ class LightCycleGame {
                 ctx.fillText('2×tap', cx, cy + this.cellSize * 0.35);
             }
         }
+    }
+    
+    drawHintPath() {
+        if (!this.hintPath || this.hintPath.length < 2) return;
+        
+        const ctx = this.ctx;
+        const pulse = Math.sin(this.pulsePhase * 4) * 0.3 + 0.7;
+        
+        // Draw animated dashed hint path
+        ctx.save();
+        ctx.strokeStyle = '#ffff00';
+        ctx.globalAlpha = 0.6 * pulse;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.setLineDash([15, 10]);
+        ctx.lineDashOffset = -this.pulsePhase * 30; // Animate the dash
+        
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 20;
+        
+        ctx.beginPath();
+        this.hintPath.forEach((p, i) => {
+            const px = p.x * this.cellSize + this.cellSize / 2;
+            const py = p.y * this.cellSize + this.cellSize / 2;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+        
+        // Draw hint start marker
+        const startX = this.hintPath[0].x * this.cellSize + this.cellSize / 2;
+        const startY = this.hintPath[0].y * this.cellSize + this.cellSize / 2;
+        ctx.font = `bold ${this.cellSize * 0.45}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffff00';
+        ctx.globalAlpha = pulse;
+        ctx.shadowBlur = 15;
+        ctx.fillText('💡', startX, startY - this.cellSize * 0.55);
+        
+        // Draw hint end marker (target)
+        const endP = this.hintPath[this.hintPath.length - 1];
+        const endX = endP.x * this.cellSize + this.cellSize / 2;
+        const endY = endP.y * this.cellSize + this.cellSize / 2;
+        ctx.fillText('🎯', endX, endY - this.cellSize * 0.55);
+        
+        ctx.restore();
+    }
+    
+    drawEraserCursor(pos) {
+        const ctx = this.ctx;
+        const pulse = Math.sin(this.pulsePhase * 5) * 0.2 + 0.8;
+        
+        const cx = pos.x * this.cellSize + this.cellSize / 2;
+        const cy = pos.y * this.cellSize + this.cellSize / 2;
+        const size = this.cellSize * 0.3;
+        
+        // Check if hovering over any path (not at outlet position)
+        let onPath = false;
+        for (const outletId in this.paths) {
+            const path = this.paths[outletId];
+            const pathIndex = path.findIndex(p => p.x === pos.x && p.y === pos.y);
+            if (pathIndex > 0) { // On path but not at outlet (index 0)
+                onPath = true;
+                break;
+            }
+        }
+        
+        ctx.save();
+        
+        // Draw eraser indicator
+        const color = onPath ? '#ff6666' : 'rgba(255, 102, 102, 0.4)';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = pulse;
+        
+        // Draw X mark
+        ctx.beginPath();
+        ctx.moveTo(cx - size, cy - size);
+        ctx.lineTo(cx + size, cy + size);
+        ctx.moveTo(cx + size, cy - size);
+        ctx.lineTo(cx - size, cy + size);
+        ctx.stroke();
+        
+        // Draw glowing circle when on erasable path
+        if (onPath) {
+            ctx.shadowColor = '#ff6666';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(cx, cy, size * 1.6, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
     }
     
     drawPathPreview() {
