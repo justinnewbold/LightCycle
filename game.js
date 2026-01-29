@@ -128,7 +128,7 @@ class LightCycleGame {
               obstacles: [], splitters: [], colorChangers: [] },
             { id: 5, name: "Split Decision", description: "Splitters divide your path", gridSize: 6,
               par: 10, undoBonus: 2,
-              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }],
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 2, delay: 400 }],
               stations: [{ id: 's1', x: 5, y: 0, color: 'cyan' }, { id: 's2', x: 5, y: 4, color: 'cyan' }],
               obstacles: [], splitters: [{ x: 3, y: 2, directions: ['up', 'down'] }], colorChangers: [] },
             { id: 6, name: "Obstacle Course", description: "Navigate around barriers", gridSize: 6,
@@ -154,7 +154,7 @@ class LightCycleGame {
               obstacles: [], splitters: [], colorChangers: [] },
             { id: 10, name: "Complex Web", description: "Multiple splits and merges", gridSize: 7,
               par: 20, undoBonus: 4,
-              outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan' }, { id: 'o2', x: 3, y: 0, color: 'magenta' }],
+              outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan', count: 2, delay: 400 }, { id: 'o2', x: 3, y: 0, color: 'magenta' }],
               stations: [{ id: 's1', x: 6, y: 1, color: 'cyan' }, { id: 's2', x: 6, y: 5, color: 'magenta' }, { id: 's3', x: 3, y: 6, color: 'white' }],
               obstacles: [{ x: 2, y: 2 }, { x: 4, y: 4 }], splitters: [{ x: 2, y: 3, directions: ['right', 'down'] }], colorChangers: [] },
             { id: 11, name: "The Maze", description: "Find your way through", gridSize: 7,
@@ -165,7 +165,7 @@ class LightCycleGame {
               splitters: [], colorChangers: [] },
             { id: 12, name: "Grand Finale", description: "Put all skills to the test", gridSize: 7,
               par: 22, undoBonus: 4,
-              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 5, color: 'blue' }],
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red', count: 2, delay: 400 }, { id: 'o2', x: 0, y: 5, color: 'blue' }],
               stations: [{ id: 's1', x: 6, y: 0, color: 'red' }, { id: 's2', x: 6, y: 3, color: 'purple' }, { id: 's3', x: 6, y: 6, color: 'blue' }],
               obstacles: [{ x: 2, y: 0 }, { x: 2, y: 6 }, { x: 4, y: 2 }, { x: 4, y: 4 }],
               splitters: [{ x: 2, y: 1, directions: ['right', 'down'] }, { x: 2, y: 5, directions: ['right', 'up'] }], colorChangers: [] },
@@ -176,15 +176,15 @@ class LightCycleGame {
               obstacles: [{ x: 3, y: 0 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
             { id: 14, name: "Chain Reaction", description: "Multiple transformations", gridSize: 7,
               par: 16, undoBonus: 3,
-              outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan' }],
+              outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan', count: 2, delay: 400 }],
               stations: [{ id: 's1', x: 6, y: 1, color: 'magenta' }, { id: 's2', x: 6, y: 5, color: 'yellow' }],
               obstacles: [{ x: 3, y: 3 }],
               splitters: [{ x: 2, y: 3, directions: ['up', 'down'] }],
               colorChangers: [{ x: 2, y: 1, toColor: 'magenta' }, { x: 2, y: 5, toColor: 'yellow' }] },
             { id: 15, name: "Neon Dreams", description: "Master the grid", gridSize: 8,
               par: 30, undoBonus: 5,
-              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'cyan' }, { id: 'o3', x: 0, y: 7, color: 'yellow' }],
-              stations: [{ id: 's1', x: 7, y: 0, color: 'orange' }, { id: 's2', x: 7, y: 3, color: 'white' }, { id: 's3', x: 7, y: 6, color: 'green' }],
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'blue' }, { id: 'o3', x: 0, y: 7, color: 'yellow' }],
+              stations: [{ id: 's1', x: 7, y: 0, color: 'orange' }, { id: 's2', x: 7, y: 3, color: 'purple' }, { id: 's3', x: 7, y: 6, color: 'green' }],
               obstacles: [{ x: 2, y: 2 }, { x: 2, y: 5 }, { x: 4, y: 1 }, { x: 4, y: 4 }, { x: 4, y: 6 }, { x: 6, y: 2 }, { x: 6, y: 5 }],
               splitters: [], colorChangers: [] },
             // NEW: Junction levels
@@ -278,7 +278,7 @@ class LightCycleGame {
               splitters: [{ x: 2, y: 2, directions: ['up', 'right'] }, { x: 2, y: 5, directions: ['right', 'down'] }], colorChangers: [] },
             { id: 32, name: "Precision Timing", description: "Every millisecond counts!", gridSize: 8,
               par: 16, undoBonus: 4,
-              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red', startDelay: 0 }, { id: 'o2', x: 0, y: 4, color: 'blue', startDelay: 500 }, { id: 'o3', x: 0, y: 7, color: 'yellow', startDelay: 1000 }],
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan', startDelay: 0 }, { id: 'o2', x: 0, y: 4, color: 'magenta', startDelay: 500 }, { id: 'o3', x: 0, y: 7, color: 'yellow', startDelay: 1000 }],
               stations: [{ id: 's1', x: 7, y: 3, color: 'white' }],
               obstacles: [{ x: 4, y: 0 }, { x: 4, y: 7 }], splitters: [], colorChangers: [] },
             // NEW: Crash vs Merge levels
@@ -343,7 +343,7 @@ class LightCycleGame {
               obstacles: [{ x: 4, y: 0 }, { x: 4, y: 7 }], splitters: [], colorChangers: [] },
             { id: 44, name: "Free Form Finale", description: "Master level - use Free Draw for precision!", gridSize: 8,
               par: 28, undoBonus: 5,
-              outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 4, color: 'magenta', startDelay: 400 }, { id: 'o3', x: 0, y: 7, color: 'yellow', startDelay: 800 }],
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 4, color: 'blue', startDelay: 400 }, { id: 'o3', x: 0, y: 7, color: 'yellow', startDelay: 800 }],
               stations: [{ id: 's1', x: 7, y: 2, color: 'cyan' }, { id: 's2', x: 7, y: 4, color: 'white' }, { id: 's3', x: 7, y: 6, color: 'green' }],
               obstacles: [{ x: 2, y: 0 }, { x: 2, y: 3 }, { x: 2, y: 6 }, { x: 5, y: 1 }, { x: 5, y: 4 }, { x: 5, y: 7 }],
               splitters: [], colorChangers: [] },
@@ -380,8 +380,8 @@ class LightCycleGame {
               splitters: [{ x: 3, y: 2, directions: ['up', 'right'] }, { x: 3, y: 5, directions: ['down', 'right'] }], colorChangers: [] },
             { id: 50, name: "Grand Finale", description: "The ultimate test of all your skills!", gridSize: 9,
               par: 35, undoBonus: 6,
-              outlets: [{ id: 'o1', x: 0, y: 0, color: 'red', count: 2, delay: 500 }, { id: 'o2', x: 0, y: 4, color: 'blue', count: 2, delay: 500, startDelay: 300 }, { id: 'o3', x: 0, y: 8, color: 'yellow', count: 2, delay: 500, startDelay: 600 }],
-              stations: [{ id: 's1', x: 8, y: 2, color: 'purple', required: 2 }, { id: 's2', x: 8, y: 4, color: 'white', required: 2 }, { id: 's3', x: 8, y: 6, color: 'orange', required: 2 }],
+              outlets: [{ id: 'o1', x: 0, y: 0, color: 'cyan', count: 2, delay: 500 }, { id: 'o2', x: 0, y: 4, color: 'magenta', count: 2, delay: 500, startDelay: 300 }, { id: 'o3', x: 0, y: 8, color: 'yellow', count: 2, delay: 500, startDelay: 600 }],
+              stations: [{ id: 's1', x: 8, y: 2, color: 'white', required: 2 }, { id: 's2', x: 8, y: 4, color: 'white', required: 2 }, { id: 's3', x: 8, y: 6, color: 'white', required: 2 }],
               obstacles: [{ x: 2, y: 1 }, { x: 2, y: 4 }, { x: 2, y: 7 }, { x: 4, y: 0 }, { x: 4, y: 3 }, { x: 4, y: 5 }, { x: 4, y: 8 }, { x: 6, y: 2 }, { x: 6, y: 4 }, { x: 6, y: 6 }],
               splitters: [{ x: 1, y: 2, directions: ['up', 'right'] }, { x: 1, y: 6, directions: ['down', 'right'] }], colorChangers: [] },
             // === EXPERT LEVELS (51-60) ===
@@ -452,7 +452,7 @@ class LightCycleGame {
               splitters: [], colorChangers: [] },
             { id: 62, name: "Rainbow Road", description: "Create all colors of the rainbow", gridSize: 8,
               par: 26, undoBonus: 5,
-              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'yellow' }, { id: 'o3', x: 0, y: 5, color: 'blue' }],
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'yellow' }, { id: 'o3', x: 0, y: 5, color: 'blue' }, { id: 'o4', x: 0, y: 7, color: 'red' }],
               stations: [{ id: 's1', x: 7, y: 0, color: 'red' }, { id: 's2', x: 7, y: 2, color: 'orange' }, { id: 's3', x: 7, y: 4, color: 'green' }, { id: 's4', x: 7, y: 6, color: 'purple' }],
               obstacles: [{ x: 3, y: 1 }, { x: 3, y: 5 }, { x: 5, y: 3 }], splitters: [], colorChangers: [] },
             { id: 63, name: "Intersection Chaos", description: "5 paths crossing at one point", gridSize: 8,
@@ -508,14 +508,14 @@ class LightCycleGame {
               splitters: [], colorChangers: [] },
             { id: 72, name: "Color Cascade", description: "Chain multiple color mixes", gridSize: 9,
               par: 30, undoBonus: 5,
-              outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'blue' }, { id: 'o3', x: 0, y: 7, color: 'yellow' }],
-              stations: [{ id: 's1', x: 8, y: 2, color: 'purple' }, { id: 's2', x: 8, y: 5, color: 'white' }],
+              outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 4, color: 'magenta' }, { id: 'o3', x: 0, y: 7, color: 'yellow' }],
+              stations: [{ id: 's1', x: 8, y: 2, color: 'white' }, { id: 's2', x: 8, y: 5, color: 'white' }],
               obstacles: [{ x: 2, y: 0 }, { x: 2, y: 8 }, { x: 4, y: 3 }, { x: 4, y: 5 }, { x: 6, y: 1 }, { x: 6, y: 7 }],
               splitters: [], colorChangers: [] },
             { id: 73, name: "Timing Perfection", description: "Frame-perfect coordination required", gridSize: 9,
               par: 26, undoBonus: 5,
-              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 2, delay: 400 }, { id: 'o2', x: 8, y: 2, color: 'magenta', count: 2, delay: 400, startDelay: 200 }, { id: 'o3', x: 0, y: 6, color: 'yellow', count: 2, delay: 400, startDelay: 400 }, { id: 'o4', x: 8, y: 6, color: 'red', count: 2, delay: 400, startDelay: 600 }],
-              stations: [{ id: 's1', x: 4, y: 0, color: 'white', required: 2 }, { id: 's2', x: 4, y: 4, color: 'white', required: 2 }, { id: 's3', x: 4, y: 8, color: 'orange', required: 2 }, { id: 's4', x: 0, y: 0, color: 'green', required: 2 }],
+              outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 2, delay: 400 }, { id: 'o2', x: 8, y: 2, color: 'magenta', count: 2, delay: 400, startDelay: 200 }, { id: 'o3', x: 0, y: 6, color: 'blue', count: 2, delay: 400, startDelay: 400 }, { id: 'o4', x: 8, y: 6, color: 'yellow', count: 2, delay: 400, startDelay: 600 }],
+              stations: [{ id: 's1', x: 4, y: 0, color: 'white', required: 2 }, { id: 's2', x: 4, y: 4, color: 'white', required: 2 }, { id: 's3', x: 4, y: 8, color: 'green', required: 2 }, { id: 's4', x: 0, y: 0, color: 'green', required: 2 }],
               obstacles: [{ x: 2, y: 4 }, { x: 6, y: 4 }], splitters: [], colorChangers: [] },
             { id: 74, name: "Ultimate Junction", description: "Every crossing matters", gridSize: 9,
               par: 34, undoBonus: 6,
@@ -920,288 +920,6 @@ class LightCycleGame {
             await this.syncToCloud();
             this.showToast('☁️ Progress uploaded!', 2000);
         }
-    }
-    
-    // ==================== COMMUNITY LEVELS ====================
-    async publishLevel(levelData, name, description) {
-        if (!this.cloudUserId) {
-            this.showToast('Enable Cloud Sync first', 2000);
-            return null;
-        }
-        
-        try {
-            const creatorName = localStorage.getItem('lightcycle_creator_name') || 'Anonymous';
-            
-            const response = await fetch(`${this.supabaseUrl}/rest/v1/community_levels`, {
-                method: 'POST',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                },
-                body: JSON.stringify({
-                    creator_id: this.cloudUserId,
-                    creator_name: creatorName,
-                    level_data: levelData,
-                    name: name,
-                    description: description || ''
-                })
-            });
-            
-            const result = await response.json();
-            if (result && result[0]) {
-                this.showToast('🌍 Level published!', 2000);
-                return result[0].id;
-            }
-            return null;
-        } catch (error) {
-            console.error('Publish error:', error);
-            this.showToast('Failed to publish level', 2000);
-            return null;
-        }
-    }
-    
-    async fetchCommunityLevels(sortBy = 'created_at', limit = 20) {
-        try {
-            const orderParam = sortBy === 'likes' ? 'likes.desc' : 
-                              sortBy === 'plays' ? 'plays.desc' : 'created_at.desc';
-            
-            const response = await fetch(
-                `${this.supabaseUrl}/rest/v1/community_levels?order=${orderParam}&limit=${limit}`, {
-                method: 'GET',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Fetch community levels error:', error);
-            return [];
-        }
-    }
-    
-    async incrementLevelPlays(levelId) {
-        try {
-            // First get current plays count
-            const getResponse = await fetch(
-                `${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}&select=plays`, {
-                method: 'GET',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await getResponse.json();
-            const currentPlays = data[0]?.plays || 0;
-            
-            // Update with incremented value
-            await fetch(`${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify({ plays: currentPlays + 1 })
-            });
-        } catch (error) {
-            console.error('Increment plays error:', error);
-        }
-    }
-    
-    async toggleLevelLike(levelId) {
-        if (!this.cloudUserId) {
-            this.showToast('Enable Cloud Sync to like levels', 2000);
-            return;
-        }
-        
-        try {
-            // Check if already liked
-            const checkResponse = await fetch(
-                `${this.supabaseUrl}/rest/v1/level_likes?user_id=eq.${this.cloudUserId}&level_id=eq.${levelId}`, {
-                method: 'GET',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const existing = await checkResponse.json();
-            
-            // Get current likes count
-            const levelResponse = await fetch(
-                `${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}&select=likes`, {
-                method: 'GET',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const levelData = await levelResponse.json();
-            const currentLikes = levelData[0]?.likes || 0;
-            
-            if (existing.length > 0) {
-                // Unlike - remove from likes table
-                await fetch(
-                    `${this.supabaseUrl}/rest/v1/level_likes?user_id=eq.${this.cloudUserId}&level_id=eq.${levelId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': this.supabaseKey,
-                        'Authorization': `Bearer ${this.supabaseKey}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                // Decrement likes count
-                await fetch(`${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': this.supabaseKey,
-                        'Authorization': `Bearer ${this.supabaseKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ likes: Math.max(0, currentLikes - 1) })
-                });
-                
-                this.showToast('💔 Unliked', 1000);
-                return false;
-            } else {
-                // Like - add to likes table
-                await fetch(`${this.supabaseUrl}/rest/v1/level_likes`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': this.supabaseKey,
-                        'Authorization': `Bearer ${this.supabaseKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ user_id: this.cloudUserId, level_id: levelId })
-                });
-                
-                // Increment likes count
-                await fetch(`${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': this.supabaseKey,
-                        'Authorization': `Bearer ${this.supabaseKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ likes: currentLikes + 1 })
-                });
-                
-                this.showToast('❤️ Liked!', 1000);
-                return true;
-            }
-        } catch (error) {
-            console.error('Like toggle error:', error);
-            return null;
-        }
-    }
-    
-    async showCommunityBrowser() {
-        this.showScreen('community-screen');
-        await this.loadCommunityLevels('newest');
-    }
-    
-    async loadCommunityLevels(sortBy) {
-        const container = document.getElementById('community-levels-grid');
-        if (!container) return;
-        
-        container.innerHTML = '<div class="loading-spinner">Loading...</div>';
-        
-        const sortMap = {
-            'newest': 'created_at',
-            'popular': 'plays',
-            'liked': 'likes'
-        };
-        
-        const levels = await this.fetchCommunityLevels(sortMap[sortBy] || 'created_at');
-        
-        if (levels.length === 0) {
-            container.innerHTML = '<div class="no-levels">No community levels yet. Be the first to publish!</div>';
-            return;
-        }
-        
-        container.innerHTML = '';
-        
-        levels.forEach(level => {
-            const tile = document.createElement('div');
-            tile.className = 'level-tile community-level';
-            
-            const gridSize = level.level_data?.gridSize || '?';
-            const outlets = level.level_data?.outlets?.length || 0;
-            const stations = level.level_data?.stations?.length || 0;
-            
-            tile.innerHTML = `
-                <span class="level-number">🌍</span>
-                <span class="level-name">${this.escapeHtml(level.name)}</span>
-                <span class="community-stats">
-                    ▶️ ${level.plays || 0} • ❤️ ${level.likes || 0}
-                </span>
-                <span class="level-stars">by ${this.escapeHtml(level.creator_name || 'Anonymous')}</span>
-                <span class="community-meta">${gridSize}×${gridSize} • ${outlets}→${stations}</span>
-            `;
-            
-            tile.addEventListener('click', () => {
-                this.playCommunityLevel(level);
-            });
-            
-            // Long press for like
-            let pressTimer;
-            tile.addEventListener('touchstart', () => {
-                pressTimer = setTimeout(() => {
-                    this.toggleLevelLike(level.id).then(() => this.loadCommunityLevels(sortBy));
-                }, 500);
-            });
-            tile.addEventListener('touchend', () => clearTimeout(pressTimer));
-            tile.addEventListener('touchmove', () => clearTimeout(pressTimer));
-            
-            container.appendChild(tile);
-        });
-    }
-    
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    playCommunityLevel(levelRecord) {
-        const level = levelRecord.level_data;
-        
-        // Increment play count
-        this.incrementLevelPlays(levelRecord.id);
-        
-        // Set up as custom level
-        this.currentLevel = -2; // Special marker for community level
-        this.currentCommunityLevel = levelRecord;
-        this.currentLevelData = level;
-        this.level = level;
-        
-        document.getElementById('current-level-name').textContent = levelRecord.name;
-        document.getElementById('level-message').textContent = levelRecord.description || `by ${levelRecord.creator_name || 'Anonymous'}`;
-        
-        this.gridSize = level.gridSize;
-        this.paths = {};
-        this.currentPath = null;
-        this.currentOutlet = null;
-        this.cycles = [];
-        this.isRunning = false;
-        this.trailParticles = [];
-        this.undoStack = [];
-        this.undoCount = 0;
-        
-        this.showScreen('game-screen');
-        this.resizeCanvas();
-        this.startTimer();
-        
-        this.showToast(`🌍 ${levelRecord.name}`, 2000);
     }
     
     // ==================== COLORBLIND SUPPORT ====================
@@ -1626,26 +1344,6 @@ class LightCycleGame {
             this.playSound('click'); this.hapticFeedback('light');
             this.showScreen('level-select');
         });
-        
-        // Community levels button
-        const communityBtn = document.getElementById('community-btn');
-        if (communityBtn) {
-            communityBtn.addEventListener('click', (e) => {
-                this.animateButtonPress(e.target);
-                this.playSound('click'); this.hapticFeedback('light');
-                this.showCommunityBrowser();
-            });
-        }
-        
-        // Community tab buttons
-        document.querySelectorAll('.community-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                document.querySelectorAll('.community-tab').forEach(t => t.classList.remove('active'));
-                e.target.classList.add('active');
-                this.loadCommunityLevels(e.target.dataset.sort);
-            });
-        });
-        
         document.getElementById('how-to-play-btn').addEventListener('click', (e) => {
             this.animateButtonPress(e.target);
             this.playSound('click'); this.hapticFeedback('light');
@@ -1735,17 +1433,6 @@ class LightCycleGame {
                 this.playSound('click');
                 this.hapticFeedback('light');
                 this.shareCurrentLevel();
-            });
-        }
-        
-        // Publish to community button
-        const publishBtn = document.getElementById('publish-level-btn');
-        if (publishBtn) {
-            publishBtn.addEventListener('click', (e) => {
-                this.animateButtonPress(e.target);
-                this.playSound('click');
-                this.hapticFeedback('medium');
-                this.showPublishDialog();
             });
         }
         
@@ -3314,77 +3001,6 @@ class LightCycleGame {
         requestAnimationFrame(() => dialog.classList.add('active'));
     }
     
-    showPublishDialog() {
-        if (!this.settings.cloudSync) {
-            this.showToast('Enable Cloud Sync in Settings first', 2500);
-            return;
-        }
-        
-        if (!this.editorLevel || !this.editorLevel.outlets || this.editorLevel.outlets.length === 0) {
-            this.showToast('Add some outlets first!', 2000);
-            return;
-        }
-        
-        if (!this.editorLevel.stations || this.editorLevel.stations.length === 0) {
-            this.showToast('Add some stations first!', 2000);
-            return;
-        }
-        
-        const creatorName = localStorage.getItem('lightcycle_creator_name') || '';
-        
-        const dialog = document.createElement('div');
-        dialog.className = 'confirm-dialog publish-dialog';
-        dialog.innerHTML = `
-            <div class="confirm-content">
-                <h3>🌍 Publish to Community</h3>
-                <div class="publish-form">
-                    <input type="text" id="publish-name" placeholder="Level Name" maxlength="30" required>
-                    <input type="text" id="publish-description" placeholder="Description (optional)" maxlength="100">
-                    <input type="text" id="publish-creator" placeholder="Your Name" value="${this.escapeHtml(creatorName)}" maxlength="20">
-                </div>
-                <p class="publish-info">Grid: ${this.editorLevel.gridSize}×${this.editorLevel.gridSize} • ${this.editorLevel.outlets?.length || 0} outlets • ${this.editorLevel.stations?.length || 0} stations</p>
-                <div class="confirm-buttons">
-                    <button class="neon-button cancel">Cancel</button>
-                    <button class="neon-button confirm publish">Publish</button>
-                </div>
-            </div>
-        `;
-        
-        dialog.querySelector('.cancel').addEventListener('click', () => {
-            this.hapticFeedback('light');
-            dialog.remove();
-        });
-        
-        dialog.querySelector('.publish').addEventListener('click', async () => {
-            const name = document.getElementById('publish-name').value.trim();
-            const description = document.getElementById('publish-description').value.trim();
-            const creator = document.getElementById('publish-creator').value.trim();
-            
-            if (!name) {
-                this.showToast('Please enter a level name', 1500);
-                return;
-            }
-            
-            // Save creator name for future
-            if (creator) {
-                localStorage.setItem('lightcycle_creator_name', creator);
-            }
-            
-            this.hapticFeedback('medium');
-            dialog.remove();
-            
-            // Publish the level
-            const levelData = { ...this.editorLevel };
-            await this.publishLevel(levelData, name, description);
-        });
-        
-        document.getElementById('game-container').appendChild(dialog);
-        requestAnimationFrame(() => {
-            dialog.classList.add('active');
-            document.getElementById('publish-name').focus();
-        });
-    }
-    
     showLevelCompleteModal(stars, time = 0, isDaily = false, isShared = false) {
         const modal = document.getElementById('level-complete-modal');
         const starsContainer = document.getElementById('stars-container');
@@ -4292,7 +3908,6 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
-
 
 
 
