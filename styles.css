@@ -1253,3 +1253,107 @@ body {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+/* ==================== CINEMATIC REPLAY ==================== */
+#cinema-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: 100;
+}
+
+#cinema-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.cinema-bars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.cinema-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: #000;
+    transition: height 0.5s ease;
+}
+
+.cinema-bar.top {
+    top: 0;
+}
+
+.cinema-bar.bottom {
+    bottom: 0;
+}
+
+#cinema-overlay.active .cinema-bar {
+    height: 50px;
+}
+
+.cinema-label {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    opacity: 0;
+    animation: cinemaLabelFade 3s ease forwards;
+}
+
+@keyframes cinemaLabelFade {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.cinema-skip {
+    position: absolute;
+    bottom: 8px;
+    right: 15px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+.cinema-skip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    color: #fff;
+}
+
+/* Replay button in modal */
+#replay-btn {
+    background: linear-gradient(135deg, #1a1a3a 0%, #0a0a2a 100%);
+    border-color: #ff00ff;
+    color: #ff00ff;
+    text-shadow: 0 0 10px #ff00ff;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+}
+
+#replay-btn:hover {
+    background: linear-gradient(135deg, #2a1a4a 0%, #1a0a3a 100%);
+    box-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
+}
