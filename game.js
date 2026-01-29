@@ -21,6 +21,19 @@ class LightCycleGame {
         this.crashParticles = []; // Explosion particles for crashes
         this.pulsePhase = 0;
         
+        // Level Packs - themed regions
+        this.levelPacks = [
+            { id: 'basics', name: '🎓 Tutorial', description: 'Learn the basics', levels: [1, 2, 3, 4, 5, 6, 7, 8], color: '#00ff88' },
+            { id: 'colors', name: '🎨 Color Theory', description: 'Master color mixing', levels: [9, 10, 11, 12, 13, 14, 15], color: '#ff00ff' },
+            { id: 'junctions', name: '🔀 Junctions', description: 'Switchable intersections', levels: [16, 17, 18], color: '#ffaa00' },
+            { id: 'multiTrain', name: '🚂 Multi-Train', description: 'Multiple trains & timing', levels: [19, 20, 21, 22, 23, 24, 25, 26, 27], color: '#00ffff' },
+            { id: 'timing', name: '⏱️ Timing', description: 'Delayed starts & waves', levels: [28, 29, 30, 31, 32], color: '#ff6600' },
+            { id: 'crashes', name: '💥 Crash Course', description: 'Avoid head-on collisions', levels: [33, 34, 35, 36, 37, 38], color: '#ff0044' },
+            { id: 'freeDraw', name: '✏️ Free Draw', description: 'Precision path control', levels: [39, 40, 41, 42, 43, 44], color: '#aa88ff' },
+            { id: 'masters', name: '🏆 Masters', description: 'Ultimate challenges', levels: [45, 46, 47, 48, 49, 50], color: '#ffd700' }
+        ];
+        this.currentPack = null; // null = show all, otherwise pack id
+        
         // Swipe/gesture state
         this.touchStart = null;
         this.touchCurrent = null;
@@ -2245,36 +2258,124 @@ class LightCycleGame {
         });
         grid.appendChild(dailyTile);
         
-        // Regular levels
-        this.levels.forEach((level, index) => {
-            const tile = document.createElement('div');
-            tile.className = 'level-tile';
-            const isCompleted = this.progress.completedLevels.includes(index);
-            const isUnlocked = this.settings.devMode || index === 0 || this.progress.completedLevels.includes(index - 1);
-            if (isCompleted) tile.classList.add('completed');
-            if (!isUnlocked) tile.classList.add('locked');
-            
-            const stars = this.progress.stars[index] || 0;
-            const bestTime = this.progress.bestTimes[index];
-            const timeText = bestTime ? this.formatTime(bestTime) : '';
-            
-            tile.innerHTML = `
-                <span class="level-number">${level.id}</span>
-                <span class="level-name">${level.name}</span>
-                <span class="level-stars">${isCompleted ? '★'.repeat(stars) + '☆'.repeat(3-stars) : '☆☆☆'}</span>
-                ${timeText ? `<span class="level-time">${timeText}</span>` : ''}
-            `;
-            
-            if (isUnlocked) {
-                tile.addEventListener('click', () => {
-                    this.animateButtonPress(tile);
+        // Show Level Packs or individual levels
+        if (!this.currentPack) {
+            // Show level pack tiles
+            this.levelPacks.forEach(pack => {
+                const packTile = document.createElement('div');
+                packTile.className = 'level-tile level-pack';
+                packTile.style.borderColor = pack.color;
+                packTile.style.setProperty('--pack-color', pack.color);
+                
+                // Calculate pack progress
+                const completedInPack = pack.levels.filter(levelId => {
+                    const index = this.levels.findIndex(l => l.id === levelId);
+                    return this.progress.completedLevels.includes(index);
+                }).length;
+                const totalInPack = pack.levels.length;
+                const packComplete = completedInPack === totalInPack;
+                
+                if (packComplete) packTile.classList.add('completed');
+                
+                packTile.innerHTML = `
+                    <span class="level-number" style="font-size: 1.5em;">${pack.name.split(' ')[0]}</span>
+                    <span class="level-name">${pack.name.split(' ').slice(1).join(' ')}</span>
+                    <span class="level-stars">${completedInPack}/${totalInPack} ⭐</span>
+                    <span class="pack-desc">${pack.description}</span>
+                `;
+                
+                packTile.addEventListener('click', () => {
+                    this.animateButtonPress(packTile);
                     this.playSound('click');
                     this.hapticFeedback('light');
-                    this.startLevel(index);
+                    this.currentPack = pack.id;
+                    this.renderLevelSelect();
                 });
+                
+                grid.appendChild(packTile);
+            });
+            
+            // Show "All Levels" option
+            const allTile = document.createElement('div');
+            allTile.className = 'level-tile';
+            allTile.style.borderColor = '#666';
+            const totalCompleted = this.progress.completedLevels.length;
+            allTile.innerHTML = `
+                <span class="level-number">📋</span>
+                <span class="level-name">All Levels</span>
+                <span class="level-stars">${totalCompleted}/${this.levels.length} complete</span>
+            `;
+            allTile.addEventListener('click', () => {
+                this.animateButtonPress(allTile);
+                this.playSound('click');
+                this.hapticFeedback('light');
+                this.currentPack = 'all';
+                this.renderLevelSelect();
+            });
+            grid.appendChild(allTile);
+        } else {
+            // Show back button
+            const backTile = document.createElement('div');
+            backTile.className = 'level-tile back-button';
+            backTile.innerHTML = `
+                <span class="level-number">←</span>
+                <span class="level-name">Back to Packs</span>
+                <span class="level-stars"></span>
+            `;
+            backTile.addEventListener('click', () => {
+                this.animateButtonPress(backTile);
+                this.playSound('click');
+                this.hapticFeedback('light');
+                this.currentPack = null;
+                this.renderLevelSelect();
+            });
+            grid.appendChild(backTile);
+            
+            // Determine which levels to show
+            let levelsToShow = [];
+            if (this.currentPack === 'all') {
+                levelsToShow = this.levels.map((_, i) => i);
+            } else {
+                const pack = this.levelPacks.find(p => p.id === this.currentPack);
+                if (pack) {
+                    levelsToShow = pack.levels.map(levelId => this.levels.findIndex(l => l.id === levelId)).filter(i => i >= 0);
+                }
             }
-            grid.appendChild(tile);
-        });
+            
+            // Show individual levels
+            levelsToShow.forEach(index => {
+                const level = this.levels[index];
+                if (!level) return;
+                
+                const tile = document.createElement('div');
+                tile.className = 'level-tile';
+                const isCompleted = this.progress.completedLevels.includes(index);
+                const isUnlocked = this.settings.devMode || index === 0 || this.progress.completedLevels.includes(index - 1);
+                if (isCompleted) tile.classList.add('completed');
+                if (!isUnlocked) tile.classList.add('locked');
+                
+                const stars = this.progress.stars[index] || 0;
+                const bestTime = this.progress.bestTimes[index];
+                const timeText = bestTime ? this.formatTime(bestTime) : '';
+                
+                tile.innerHTML = `
+                    <span class="level-number">${level.id}</span>
+                    <span class="level-name">${level.name}</span>
+                    <span class="level-stars">${isCompleted ? '★'.repeat(stars) + '☆'.repeat(3-stars) : '☆☆☆'}</span>
+                    ${timeText ? `<span class="level-time">${timeText}</span>` : ''}
+                `;
+                
+                if (isUnlocked) {
+                    tile.addEventListener('click', () => {
+                        this.animateButtonPress(tile);
+                        this.playSound('click');
+                        this.hapticFeedback('light');
+                        this.startLevel(index);
+                    });
+                }
+                grid.appendChild(tile);
+            });
+        }
     }
     
     startDailyChallenge() {
