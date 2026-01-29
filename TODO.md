@@ -117,7 +117,7 @@ Features to implement to make Light Cycle more like Trainyard, the classic puzzl
 
 ## Priority 3: Content
 
-### 7. [ ] Expand to 50-100 Levels
+### 7. [x] Expand to 50 Levels
 **Description:** Create more levels with progressive difficulty using new mechanics.
 
 **Details:**
