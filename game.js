@@ -1,6 +1,8 @@
 // Light Cycle - Tron Puzzle Game
 // iOS-Native Enhanced Edition with Swipe Controls & Modern UX
 
+const GAME_VERSION = '0.62';
+
 class LightCycleGame {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -31,6 +33,15 @@ class LightCycleGame {
         this.hintPath = null;
         this.hintOutletId = null;
         this.hintTimeout = null;
+        this.hintSolutionIndex = 0; // Track which solution we're showing in dev mode
+        
+        // Dev Mode state
+        this.devMode = false;
+        this.versionTapCount = 0;
+        this.versionTapTimer = null;
+        this.devModeUnlocked = localStorage.getItem('lightcycle_devMode') === 'true';
+        this.showingSolutions = false;
+        this.currentSolutionIndex = 0;
         
         // Swipe/gesture state
         this.touchStart = null;
@@ -148,48 +159,57 @@ class LightCycleGame {
               par: 5, undoBonus: 0,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }],
               stations: [{ id: 's1', x: 4, y: 2, color: 'cyan' }],
-              obstacles: [], splitters: [], colorChangers: [] },
+              obstacles: [], splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:2},{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:4,y:2}] }] },
             { id: 2, name: "Two Paths", description: "Guide both cycles to their stations", gridSize: 5,
               par: 10, undoBonus: 1,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'cyan' }, { id: 'o2', x: 0, y: 3, color: 'magenta' }],
               stations: [{ id: 's1', x: 4, y: 1, color: 'cyan' }, { id: 's2', x: 4, y: 3, color: 'magenta' }],
-              obstacles: [], splitters: [], colorChangers: [] },
+              obstacles: [], splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1}], o2: [{x:0,y:3},{x:1,y:3},{x:2,y:3},{x:3,y:3},{x:4,y:3}] }] },
             { id: 3, name: "Crossroads", description: "Paths can cross each other", gridSize: 5,
               par: 10, undoBonus: 1,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }, { id: 'o2', x: 2, y: 0, color: 'magenta' }],
               stations: [{ id: 's1', x: 4, y: 2, color: 'cyan' }, { id: 's2', x: 2, y: 4, color: 'magenta' }],
-              obstacles: [], splitters: [], colorChangers: [] },
+              obstacles: [], splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:2},{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:4,y:2}], o2: [{x:2,y:0},{x:2,y:1},{x:2,y:2},{x:2,y:3},{x:2,y:4}] }] },
             { id: 4, name: "Color Blend", description: "Merge paths: Red + Blue = Purple", gridSize: 6,
               par: 10, undoBonus: 2,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 4, color: 'blue' }],
               stations: [{ id: 's1', x: 5, y: 2, color: 'purple' }],
-              obstacles: [], splitters: [], colorChangers: [] },
+              obstacles: [], splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:2,y:2},{x:3,y:2},{x:4,y:2},{x:5,y:2}], o2: [{x:0,y:4},{x:1,y:4},{x:2,y:4},{x:2,y:3},{x:2,y:2}] }] },
             { id: 5, name: "Split Decision", description: "Splitters divide your path", gridSize: 6,
               par: 10, undoBonus: 2,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan', count: 2, delay: 400 }],
               stations: [{ id: 's1', x: 5, y: 0, color: 'cyan' }, { id: 's2', x: 5, y: 4, color: 'cyan' }],
-              obstacles: [], splitters: [{ x: 3, y: 2, directions: ['up', 'down'] }], colorChangers: [] },
+              obstacles: [], splitters: [{ x: 3, y: 2, directions: ['up', 'down'] }], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:2},{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:3,y:1},{x:3,y:0},{x:4,y:0},{x:5,y:0}] }] },
             { id: 6, name: "Obstacle Course", description: "Navigate around barriers", gridSize: 6,
               par: 10, undoBonus: 2,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'cyan' }],
               stations: [{ id: 's1', x: 5, y: 2, color: 'cyan' }],
               obstacles: [{ x: 2, y: 1 }, { x: 2, y: 2 }, { x: 2, y: 3 }, { x: 4, y: 0 }, { x: 4, y: 1 }, { x: 4, y: 3 }, { x: 4, y: 4 }],
-              splitters: [], colorChangers: [] },
+              splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:2},{x:0,y:1},{x:0,y:0},{x:1,y:0},{x:2,y:0},{x:3,y:0},{x:3,y:1},{x:3,y:2},{x:4,y:2},{x:5,y:2}] }] },
             { id: 7, name: "Color Shift", description: "Color changers transform cycles", gridSize: 6,
               par: 6, undoBonus: 1,
               outlets: [{ id: 'o1', x: 0, y: 2, color: 'red' }],
               stations: [{ id: 's1', x: 5, y: 2, color: 'blue' }],
-              obstacles: [], splitters: [], colorChangers: [{ x: 3, y: 2, toColor: 'blue' }] },
+              obstacles: [], splitters: [], colorChangers: [{ x: 3, y: 2, toColor: 'blue' }],
+              solutions: [{ o1: [{x:0,y:2},{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:4,y:2},{x:5,y:2}] }] },
             { id: 8, name: "Triple Threat", description: "Three colors, three destinations", gridSize: 7,
               par: 24, undoBonus: 3,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'blue' }, { id: 'o3', x: 0, y: 5, color: 'yellow' }],
               stations: [{ id: 's1', x: 6, y: 1, color: 'red' }, { id: 's2', x: 6, y: 3, color: 'blue' }, { id: 's3', x: 6, y: 5, color: 'yellow' }],
-              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 2 }, { x: 3, y: 4 }, { x: 3, y: 6 }], splitters: [], colorChangers: [] },
+              obstacles: [{ x: 3, y: 0 }, { x: 3, y: 2 }, { x: 3, y: 4 }, { x: 3, y: 6 }], splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1},{x:5,y:1},{x:6,y:1}], o2: [{x:0,y:3},{x:1,y:3},{x:2,y:3},{x:3,y:3},{x:4,y:3},{x:5,y:3},{x:6,y:3}], o3: [{x:0,y:5},{x:1,y:5},{x:2,y:5},{x:3,y:5},{x:4,y:5},{x:5,y:5},{x:6,y:5}] }] },
             { id: 9, name: "Mix Master", description: "Create multiple mixed colors", gridSize: 7,
               par: 18, undoBonus: 3,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red' }, { id: 'o2', x: 0, y: 3, color: 'yellow' }, { id: 'o3', x: 0, y: 5, color: 'blue' }],
               stations: [{ id: 's1', x: 6, y: 2, color: 'orange' }, { id: 's2', x: 6, y: 4, color: 'green' }],
-              obstacles: [], splitters: [], colorChangers: [] },
+              obstacles: [], splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:2,y:2},{x:3,y:2},{x:4,y:2},{x:5,y:2},{x:6,y:2}], o2: [{x:0,y:3},{x:1,y:3},{x:2,y:3},{x:2,y:2}], o3: [{x:0,y:5},{x:1,y:5},{x:2,y:5},{x:2,y:4},{x:3,y:4},{x:4,y:4},{x:5,y:4},{x:6,y:4}] }] },
             { id: 10, name: "Complex Web", description: "Multiple splits and merges", gridSize: 7,
               par: 20, undoBonus: 4,
               outlets: [{ id: 'o1', x: 0, y: 3, color: 'cyan', count: 2, delay: 400 }, { id: 'o2', x: 3, y: 0, color: 'magenta' }],
@@ -200,7 +220,8 @@ class LightCycleGame {
               outlets: [{ id: 'o1', x: 0, y: 0, color: 'cyan' }],
               stations: [{ id: 's1', x: 6, y: 6, color: 'cyan' }],
               obstacles: [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 4, y: 2 }, { x: 4, y: 3 }, { x: 1, y: 3 }, { x: 2, y: 3 }, { x: 2, y: 4 }, { x: 2, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }],
-              splitters: [], colorChangers: [] },
+              splitters: [], colorChangers: [],
+              solutions: [{ o1: [{x:0,y:0},{x:0,y:1},{x:0,y:2},{x:0,y:3},{x:0,y:4},{x:0,y:5},{x:0,y:6},{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:3,y:5},{x:3,y:4},{x:3,y:3},{x:3,y:2},{x:5,y:2},{x:5,y:3},{x:5,y:4},{x:6,y:4},{x:6,y:5},{x:6,y:6}] }] },
             { id: 12, name: "Grand Finale", description: "Put all skills to the test", gridSize: 7,
               par: 22, undoBonus: 4,
               outlets: [{ id: 'o1', x: 0, y: 1, color: 'red', count: 2, delay: 400 }, { id: 'o2', x: 0, y: 5, color: 'blue' }],
@@ -1609,12 +1630,214 @@ class LightCycleGame {
         
         window.addEventListener('resize', () => this.resizeCanvas());
         
+        // Initialize version display with tap-to-unlock dev mode
+        this.initVersionDisplay();
+        
         // Prevent pull-to-refresh on iOS
         document.body.addEventListener('touchmove', (e) => {
             if (e.target.closest('#game-canvas')) {
                 e.preventDefault();
             }
         }, { passive: false });
+    }
+    
+    // Initialize version display with tap-to-unlock dev mode
+    initVersionDisplay() {
+        // Create version display element if it doesn't exist
+        let versionDisplay = document.getElementById('version-display');
+        if (!versionDisplay) {
+            versionDisplay = document.createElement('div');
+            versionDisplay.id = 'version-display';
+            versionDisplay.style.cssText = `
+                position: fixed;
+                bottom: 8px;
+                right: 12px;
+                font-size: 11px;
+                color: rgba(0, 255, 255, 0.4);
+                font-family: monospace;
+                cursor: pointer;
+                z-index: 1000;
+                user-select: none;
+                transition: all 0.3s ease;
+            `;
+            document.body.appendChild(versionDisplay);
+        }
+        
+        // Update version text
+        this.updateVersionDisplay();
+        
+        // Tap handler for dev mode unlock
+        versionDisplay.addEventListener('click', () => this.handleVersionTap());
+        versionDisplay.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.handleVersionTap();
+        });
+    }
+    
+    updateVersionDisplay() {
+        const versionDisplay = document.getElementById('version-display');
+        if (versionDisplay) {
+            const devIndicator = this.devModeUnlocked ? ' 🔓' : '';
+            versionDisplay.textContent = `v${GAME_VERSION}${devIndicator}`;
+            versionDisplay.style.color = this.devModeUnlocked ? 'rgba(255, 215, 0, 0.7)' : 'rgba(0, 255, 255, 0.4)';
+        }
+    }
+    
+    handleVersionTap() {
+        this.versionTapCount++;
+        this.hapticFeedback('light');
+        
+        // Clear existing timer
+        if (this.versionTapTimer) {
+            clearTimeout(this.versionTapTimer);
+        }
+        
+        // Visual feedback for taps
+        const versionDisplay = document.getElementById('version-display');
+        if (versionDisplay) {
+            versionDisplay.style.transform = 'scale(1.2)';
+            setTimeout(() => versionDisplay.style.transform = 'scale(1)', 100);
+        }
+        
+        // Check for unlock
+        if (this.versionTapCount >= 3) {
+            if (!this.devModeUnlocked) {
+                this.devModeUnlocked = true;
+                localStorage.setItem('lightcycle_devMode', 'true');
+                this.updateVersionDisplay();
+                this.showToast('🔓 Dev Mode Unlocked!', 2500);
+                this.playSound('win');
+                this.hapticFeedback('heavy');
+            } else {
+                // Toggle dev panel if already unlocked
+                this.toggleDevPanel();
+            }
+            this.versionTapCount = 0;
+            return;
+        }
+        
+        // Reset counter after 1 second of no taps
+        this.versionTapTimer = setTimeout(() => {
+            this.versionTapCount = 0;
+        }, 1000);
+    }
+    
+    toggleDevPanel() {
+        let devPanel = document.getElementById('dev-panel');
+        
+        if (devPanel) {
+            // Toggle existing panel
+            devPanel.classList.toggle('hidden');
+            return;
+        }
+        
+        // Create dev panel
+        devPanel = document.createElement('div');
+        devPanel.id = 'dev-panel';
+        devPanel.innerHTML = `
+            <div class="dev-panel-header">
+                <span>🛠️ Dev Mode</span>
+                <button id="dev-panel-close">✕</button>
+            </div>
+            <div class="dev-panel-content">
+                <button id="dev-show-solution" class="dev-btn">📋 Show Solution</button>
+                <button id="dev-cycle-solution" class="dev-btn">🔄 Cycle Solutions</button>
+                <button id="dev-skip-level" class="dev-btn">⏭️ Skip Level</button>
+                <button id="dev-unlock-all" class="dev-btn">🔓 Unlock All</button>
+                <button id="dev-add-hints" class="dev-btn">💡 +10 Hints</button>
+                <div class="dev-info" id="dev-level-info"></div>
+            </div>
+        `;
+        devPanel.style.cssText = `
+            position: fixed;
+            bottom: 50px;
+            right: 10px;
+            background: rgba(10, 10, 26, 0.95);
+            border: 2px solid #00ffff;
+            border-radius: 12px;
+            padding: 12px;
+            z-index: 2000;
+            min-width: 180px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        `;
+        document.body.appendChild(devPanel);
+        
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            #dev-panel.hidden { display: none; }
+            .dev-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #00ffff; font-weight: bold; }
+            .dev-panel-header button { background: none; border: none; color: #ff6666; cursor: pointer; font-size: 16px; }
+            .dev-btn { display: block; width: 100%; padding: 8px 12px; margin: 6px 0; background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); color: #00ffff; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: left; transition: all 0.2s; }
+            .dev-btn:hover { background: rgba(0, 255, 255, 0.2); border-color: #00ffff; }
+            .dev-btn:active { transform: scale(0.98); }
+            .dev-info { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0, 255, 255, 0.2); font-size: 10px; color: rgba(0, 255, 255, 0.6); }
+        `;
+        document.head.appendChild(style);
+        
+        // Event listeners
+        document.getElementById('dev-panel-close').addEventListener('click', () => {
+            devPanel.classList.add('hidden');
+        });
+        
+        document.getElementById('dev-show-solution').addEventListener('click', () => {
+            this.currentSolutionIndex = 0;
+            if (this.applySolution(0)) {
+                this.updateDevLevelInfo();
+            }
+        });
+        
+        document.getElementById('dev-cycle-solution').addEventListener('click', () => {
+            this.cycleSolution();
+            this.updateDevLevelInfo();
+        });
+        
+        document.getElementById('dev-skip-level').addEventListener('click', () => {
+            if (this.currentLevel < this.levels.length - 1) {
+                this.startLevel(this.currentLevel + 1);
+                this.updateDevLevelInfo();
+            } else {
+                this.showToast('Already at last level');
+            }
+        });
+        
+        document.getElementById('dev-unlock-all').addEventListener('click', () => {
+            this.levels.forEach((level, index) => {
+                if (!this.progress.completedLevels.includes(index)) {
+                    this.progress.completedLevels.push(index);
+                }
+                if (!this.progress.stars[index]) {
+                    this.progress.stars[index] = 3;
+                }
+            });
+            this.saveProgress();
+            this.renderLevelSelect();
+            this.showToast('🔓 All levels unlocked!');
+        });
+        
+        document.getElementById('dev-add-hints').addEventListener('click', () => {
+            this.progress.hints = (this.progress.hints || 0) + 10;
+            this.saveProgress();
+            this.updateHintButton();
+            this.showToast('💡 +10 hints added!');
+        });
+        
+        this.updateDevLevelInfo();
+    }
+    
+    updateDevLevelInfo() {
+        const infoDiv = document.getElementById('dev-level-info');
+        if (!infoDiv) return;
+        
+        const level = this.levels[this.currentLevel];
+        const solutionCount = level.solutions ? level.solutions.length : 0;
+        
+        infoDiv.innerHTML = `
+            Level: ${level.id} - ${level.name}<br>
+            Solutions: ${solutionCount}<br>
+            Grid: ${level.gridSize}x${level.gridSize}<br>
+            Outlets: ${level.outlets.length} | Stations: ${level.stations.length}
+        `;
     }
     
     // ==================== CANVAS INTERACTIONS ====================
@@ -2197,6 +2420,11 @@ class LightCycleGame {
         this.junctions = newJunctions;
     }
     
+    // Alias for recalculateJunctions (used by applySolution)
+    rebuildJunctions() {
+        this.recalculateJunctions();
+    }
+    
     // Get possible configurations for a junction
     getJunctionConfigs(paths) {
         // Each configuration specifies which path has priority (goes straight)
@@ -2392,7 +2620,41 @@ class LightCycleGame {
     }
     
     generateHint(level) {
-        // Find an outlet that doesn't have a complete path to its matching station
+        // PRIORITY 1: Use stored solution if available
+        if (level.solutions && level.solutions.length > 0) {
+            // Get the first solution (or cycle through in dev mode)
+            const solutionIndex = this.devModeUnlocked ? (this.hintSolutionIndex % level.solutions.length) : 0;
+            const solution = level.solutions[solutionIndex];
+            
+            // Find an outlet that doesn't have a complete path yet
+            for (const outlet of level.outlets) {
+                const solutionPath = solution[outlet.id];
+                if (!solutionPath) continue;
+                
+                const existingPath = this.paths[outlet.id];
+                
+                // Check if this outlet already has a complete path to station
+                if (existingPath && existingPath.length > 1) {
+                    const endPos = existingPath[existingPath.length - 1];
+                    const reachesStation = level.stations.some(s => s.x === endPos.x && s.y === endPos.y);
+                    if (reachesStation) continue; // This outlet is done
+                }
+                
+                // Return the stored solution path for this outlet
+                return { outletId: outlet.id, path: solutionPath, outlet: outlet, fromSolution: true };
+            }
+            
+            // All outlets have paths, but maybe they're wrong - show first outlet solution
+            if (level.outlets.length > 0) {
+                const outlet = level.outlets[0];
+                const solutionPath = solution[outlet.id];
+                if (solutionPath) {
+                    return { outletId: outlet.id, path: solutionPath, outlet: outlet, fromSolution: true };
+                }
+            }
+        }
+        
+        // PRIORITY 2: Fall back to A* pathfinding for levels without stored solutions
         for (const outlet of level.outlets) {
             const existingPath = this.paths[outlet.id];
             
@@ -2414,12 +2676,57 @@ class LightCycleGame {
                     );
                     
                     if (path && path.length > 1) {
-                        return { outletId: outlet.id, path: path, outlet: outlet, station: station };
+                        return { outletId: outlet.id, path: path, outlet: outlet, station: station, fromSolution: false };
                     }
                 }
             }
         }
         return null;
+    }
+    
+    // Get all solutions for current level (for dev mode)
+    getLevelSolutions() {
+        const level = this.levels[this.currentLevel];
+        if (!level.solutions) return [];
+        return level.solutions;
+    }
+    
+    // Apply a complete solution to the current level (dev mode)
+    applySolution(solutionIndex = 0) {
+        const level = this.levels[this.currentLevel];
+        if (!level.solutions || !level.solutions[solutionIndex]) {
+            this.showToast('No solution available for this level', 2000);
+            return false;
+        }
+        
+        // Clear existing paths
+        this.paths = {};
+        this.junctions = {};
+        
+        // Apply the solution
+        const solution = level.solutions[solutionIndex];
+        for (const outletId in solution) {
+            this.paths[outletId] = [...solution[outletId]]; // Clone the path
+        }
+        
+        // Rebuild junctions for crossing paths
+        this.rebuildJunctions();
+        
+        this.render();
+        this.showToast(`📋 Applied solution ${solutionIndex + 1}/${level.solutions.length}`, 2000);
+        return true;
+    }
+    
+    // Cycle through solutions in dev mode
+    cycleSolution() {
+        const level = this.levels[this.currentLevel];
+        if (!level.solutions || level.solutions.length === 0) {
+            this.showToast('No solutions stored for this level', 2000);
+            return;
+        }
+        
+        this.currentSolutionIndex = (this.currentSolutionIndex + 1) % level.solutions.length;
+        this.applySolution(this.currentSolutionIndex);
     }
     
     canColorContributeTo(sourceColor, targetColor) {
@@ -3434,6 +3741,10 @@ class LightCycleGame {
                 this.showToast('Playing shared level!', 2000);
             }, 500);
         }
+        
+        // Update dev panel if visible
+        this.updateDevLevelInfo();
+        this.currentSolutionIndex = 0;
     }
     
     resetLevel() {
@@ -4904,6 +5215,7 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
+
 
 
 
