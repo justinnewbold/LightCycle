@@ -1144,3 +1144,37 @@ body {
 .level-tile.level-pack {
     border-color: color-mix(in srgb, var(--pack-color, #00ffff) 60%, transparent);
 }
+
+
+/* Cloud Sync Indicator */
+.sync-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    display: none;
+    align-items: center;
+    gap: 5px;
+    z-index: 1000;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sync-indicator:hover {
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.sync-spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
