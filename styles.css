@@ -564,39 +564,91 @@ body {
 }
 
 /* ==================== GAME CONTROLS ==================== */
+
+/* Secondary toolbar - compact icon row */
+.secondary-toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 0 4px;
+}
+
+.tool-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 255, 255, 0.4);
+    background: rgba(0, 20, 40, 0.6);
+    color: var(--neon-cyan);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.tool-btn:active {
+    transform: scale(0.92);
+    background: rgba(0, 255, 255, 0.15);
+}
+
+.tool-btn .hint-count {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--neon-cyan);
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 8px;
+    min-width: 14px;
+}
+
+.tool-btn.active {
+    background: rgba(0, 255, 255, 0.25);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+}
+
+#eraser-btn.active {
+    background: rgba(255, 100, 100, 0.25);
+    border-color: #ff6666;
+    box-shadow: 0 0 12px rgba(255, 100, 100, 0.4);
+}
+
+#hint-btn.active {
+    background: rgba(255, 255, 0, 0.2);
+    border-color: #ffff00;
+    box-shadow: 0 0 12px rgba(255, 255, 0, 0.4);
+}
+
+/* Main game controls */
 .game-controls {
     display: flex;
-    gap: 10px;
-    padding: 12px 0;
+    gap: 12px;
+    padding: 8px 0 12px;
     align-items: stretch;
 }
 
 .control-btn {
     flex: 1;
-    padding: 14px 12px;
-    font-size: 0.85rem;
+    padding: 16px 12px;
+    font-size: 0.9rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
     background: transparent;
     border: 2px solid var(--neon-cyan);
     color: var(--neon-cyan);
     cursor: pointer;
     transition: all 0.15s var(--spring-smooth);
-    border-radius: 10px;
-    text-transform: uppercase;
-}
-
-.control-btn.small {
-    flex: 0 0 auto;
-    padding: 14px 16px;
-    font-size: 1.1rem;
-    min-width: 54px;
-}
-
-.control-btn.small .hint-count {
-    font-size: 0.7rem;
-    vertical-align: super;
-    margin-left: 2px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .control-btn:active {
@@ -605,33 +657,26 @@ body {
 }
 
 .control-btn.primary {
-    background: rgba(0, 255, 255, 0.2);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.25);
+    flex: 1.5;
+    background: rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    font-size: 1rem;
 }
 
 .control-btn.primary:active {
-    background: rgba(0, 255, 255, 0.3);
+    background: rgba(0, 255, 255, 0.25);
+}
+
+.control-btn.primary.running {
+    background: rgba(255, 100, 100, 0.2);
+    border-color: #ff6666;
+    color: #ff6666;
+    box-shadow: 0 0 20px rgba(255, 100, 100, 0.3);
 }
 
 .control-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
-}
-
-/* Eraser button active state */
-#eraser-btn.active {
-    background: rgba(255, 100, 100, 0.3);
-    border-color: #ff6666;
-    color: #ff6666;
-    box-shadow: 0 0 15px rgba(255, 100, 100, 0.4);
-}
-
-/* Hint button active state */
-#hint-btn.active {
-    background: rgba(255, 255, 0, 0.2);
-    border-color: #ffff00;
-    color: #ffff00;
-    box-shadow: 0 0 15px rgba(255, 255, 0, 0.4);
 }
 
 .level-message {
