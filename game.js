@@ -141,6 +141,7 @@ class LightCycleGame {
         this.initSwipeNavigation();
         this.initKeyboardShortcuts();
         this.initCloudSync();
+        this.initCommunityUI();
         this.renderLevelSelect();
         this.startAnimationLoop();
         
@@ -1044,6 +1045,331 @@ class LightCycleGame {
             // No cloud data, just push local
             await this.syncToCloud();
             this.showToast('☁️ Progress uploaded!', 2000);
+        }
+    }
+    
+    // ==================== COMMUNITY LEVELS ====================
+    
+    async loadCommunityLevels(sortBy = 'newest') {
+        const grid = document.getElementById('community-levels-grid');
+        grid.innerHTML = '<div class="loading-message">Loading community levels...</div>';
+        
+        try {
+            let orderBy = 'created_at.desc';
+            if (sortBy === 'popular') orderBy = 'plays.desc';
+            if (sortBy === 'liked') orderBy = 'likes.desc';
+            
+            const response = await fetch(
+                `${this.supabaseUrl}/rest/v1/community_levels?select=*&order=${orderBy}&limit=50`,
+                {
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`
+                    }
+                }
+            );
+            
+            if (!response.ok) throw new Error('Failed to load community levels');
+            
+            const levels = await response.json();
+            this.communityLevels = levels;
+            this.renderCommunityLevels(levels);
+            
+        } catch (error) {
+            console.error('Error loading community levels:', error);
+            grid.innerHTML = '<div class="loading-message">Failed to load community levels. Check your connection.</div>';
+        }
+    }
+    
+    renderCommunityLevels(levels) {
+        const grid = document.getElementById('community-levels-grid');
+        grid.innerHTML = '';
+        
+        if (levels.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-community">
+                    <p>No community levels yet!</p>
+                    <p style="font-size: 0.9rem; opacity: 0.7;">Be the first - play a level and tap 🌍 to publish!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        levels.forEach(level => {
+            const tile = document.createElement('div');
+            tile.className = 'level-tile community-level';
+            
+            const liked = this.isLevelLiked(level.id);
+            
+            tile.innerHTML = `
+                <span class="level-number">🎮</span>
+                <span class="level-name">${this.escapeHtml(level.name || 'Unnamed')}</span>
+                <span class="creator-name">by ${this.escapeHtml(level.creator_name || 'Anonymous')}</span>
+                <span class="level-stats">▶️ ${level.plays || 0} • ${liked ? '❤️' : '🤍'} ${level.likes || 0}</span>
+            `;
+            
+            // Tap to play
+            tile.addEventListener('click', () => {
+                this.animateButtonPress(tile);
+                this.playSound('click');
+                this.hapticFeedback('medium');
+                this.playCommunityLevel(level);
+            });
+            
+            // Long press to like
+            let longPressTimer;
+            tile.addEventListener('touchstart', (e) => {
+                longPressTimer = setTimeout(() => {
+                    e.preventDefault();
+                    this.toggleLikeCommunityLevel(level);
+                }, 500);
+            });
+            tile.addEventListener('touchend', () => clearTimeout(longPressTimer));
+            tile.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+            
+            grid.appendChild(tile);
+        });
+    }
+    
+    escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    
+    async playCommunityLevel(communityLevel) {
+        try {
+            const levelData = typeof communityLevel.level_data === 'string' 
+                ? JSON.parse(communityLevel.level_data) 
+                : communityLevel.level_data;
+            
+            const level = this.decodeLevel(levelData.code || levelData);
+            if (!level) {
+                this.showToast('Failed to load level');
+                return;
+            }
+            
+            level.name = communityLevel.name || level.name;
+            level.communityId = communityLevel.id;
+            
+            // Increment play count
+            this.incrementPlayCount(communityLevel.id);
+            
+            this.currentLevel = -1;
+            this.currentLevelData = level;
+            this.playSharedLevel(level);
+            
+        } catch (error) {
+            console.error('Error playing community level:', error);
+            this.showToast('Failed to load level');
+        }
+    }
+    
+    async incrementPlayCount(levelId) {
+        try {
+            const response = await fetch(
+                `${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}&select=plays`,
+                {
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`
+                    }
+                }
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                const currentPlays = data[0]?.plays || 0;
+                
+                await fetch(
+                    `${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`,
+                    {
+                        method: 'PATCH',
+                        headers: {
+                            'apikey': this.supabaseKey,
+                            'Authorization': `Bearer ${this.supabaseKey}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify({ plays: currentPlays + 1 })
+                    }
+                );
+            }
+        } catch (error) {
+            console.error('Error incrementing play count:', error);
+        }
+    }
+    
+    isLevelLiked(levelId) {
+        const likedLevels = JSON.parse(localStorage.getItem('lightcycle_liked_levels') || '[]');
+        return likedLevels.includes(levelId);
+    }
+    
+    async toggleLikeCommunityLevel(level) {
+        const likedLevels = JSON.parse(localStorage.getItem('lightcycle_liked_levels') || '[]');
+        const isLiked = likedLevels.includes(level.id);
+        
+        try {
+            if (isLiked) {
+                const newLiked = likedLevels.filter(id => id !== level.id);
+                localStorage.setItem('lightcycle_liked_levels', JSON.stringify(newLiked));
+                
+                await fetch(
+                    `${this.supabaseUrl}/rest/v1/level_likes?user_id=eq.${this.cloudUserId}&level_id=eq.${level.id}`,
+                    {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': this.supabaseKey,
+                            'Authorization': `Bearer ${this.supabaseKey}`
+                        }
+                    }
+                );
+                
+                await this.updateLikeCount(level.id, (level.likes || 1) - 1);
+                
+                this.hapticFeedback('light');
+                this.showToast('Like removed');
+                
+            } else {
+                likedLevels.push(level.id);
+                localStorage.setItem('lightcycle_liked_levels', JSON.stringify(likedLevels));
+                
+                await fetch(
+                    `${this.supabaseUrl}/rest/v1/level_likes`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'apikey': this.supabaseKey,
+                            'Authorization': `Bearer ${this.supabaseKey}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify({
+                            user_id: this.cloudUserId,
+                            level_id: level.id
+                        })
+                    }
+                );
+                
+                await this.updateLikeCount(level.id, (level.likes || 0) + 1);
+                
+                this.hapticFeedback('medium');
+                this.playSound('click');
+                this.showToast('❤️ Level liked!');
+            }
+            
+            const activeTab = document.querySelector('.community-tab.active');
+            const sortBy = activeTab?.dataset.sort || 'newest';
+            this.loadCommunityLevels(sortBy);
+            
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            this.showToast('Failed to update like');
+        }
+    }
+    
+    async updateLikeCount(levelId, newCount) {
+        try {
+            await fetch(
+                `${this.supabaseUrl}/rest/v1/community_levels?id=eq.${levelId}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ likes: Math.max(0, newCount) })
+                }
+            );
+        } catch (error) {
+            console.error('Error updating like count:', error);
+        }
+    }
+    
+    async publishCurrentLevel() {
+        const level = this.currentLevelData || this.levels[this.currentLevel];
+        if (!level) {
+            this.showToast('No level to publish');
+            return;
+        }
+        
+        const name = prompt('Enter a name for your level:', level.name || 'My Level');
+        if (!name) return;
+        
+        const creatorName = prompt('Your name (for attribution):', localStorage.getItem('lightcycle_creator_name') || 'Anonymous');
+        if (creatorName) {
+            localStorage.setItem('lightcycle_creator_name', creatorName);
+        }
+        
+        try {
+            const code = this.encodeLevel(level);
+            
+            const response = await fetch(
+                `${this.supabaseUrl}/rest/v1/community_levels`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        creator_id: this.cloudUserId,
+                        creator_name: creatorName || 'Anonymous',
+                        level_data: { code },
+                        name: name,
+                        description: level.description || '',
+                        plays: 0,
+                        likes: 0
+                    })
+                }
+            );
+            
+            if (!response.ok) throw new Error('Failed to publish level');
+            
+            this.hapticFeedback('success');
+            this.playSound('success');
+            this.showToast('🌍 Level published to community!');
+            
+        } catch (error) {
+            console.error('Error publishing level:', error);
+            this.showToast('Failed to publish level');
+        }
+    }
+    
+    initCommunityUI() {
+        const communityBtn = document.getElementById('community-btn');
+        if (communityBtn) {
+            communityBtn.addEventListener('click', (e) => {
+                this.animateButtonPress(e.target);
+                this.playSound('click');
+                this.hapticFeedback('light');
+                this.showScreen('community-screen');
+                this.loadCommunityLevels('newest');
+            });
+        }
+        
+        document.querySelectorAll('.community-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.community-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                this.playSound('click');
+                this.hapticFeedback('light');
+                this.loadCommunityLevels(e.target.dataset.sort);
+            });
+        });
+        
+        const publishBtn = document.getElementById('publish-level-btn');
+        if (publishBtn) {
+            publishBtn.addEventListener('click', (e) => {
+                this.animateButtonPress(e.target);
+                this.playSound('click');
+                this.hapticFeedback('light');
+                this.publishCurrentLevel();
+            });
         }
     }
     
@@ -5279,6 +5605,7 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
+
 
 
 
