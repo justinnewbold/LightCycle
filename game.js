@@ -130,6 +130,55 @@ class LightCycleGame {
             'red+cyan': 'white', 'cyan+red': 'white'
         };
         
+        // Theme & Skin System
+        this.themes = {
+            classic: {
+                name: 'Classic Tron', icon: '🔵', unlocked: true,
+                css: { bgDark: '#0a0a1a', bgMedium: '#12122a', bgElevated: '#1a1a3a', gridLine: '#1a1a3a', accent: '#00ffff', accentAlt: '#ff00ff', textSecondary: '#88ccff', textMuted: '#667788' },
+                canvas: { grid: 'rgba(0, 255, 255, 0.15)', gridNumber: 'rgba(0, 255, 255, 0.3)', obstacle: '#1a1a3a', obstacleBorder: '#333355', obstacleX: '#444466', hoverFill: 'rgba(0, 255, 255, 0.2)', hoverStroke: 'rgba(0, 255, 255, 0.5)', junctionBg: '#0a0a1a', stationBg: '#0a0a1a', outletBg: '#0a0a1a' }
+            },
+            outrun: {
+                name: 'Outrun', icon: '🟣', unlocked: true,
+                css: { bgDark: '#1a0a2e', bgMedium: '#2d1b4e', bgElevated: '#3d2b5e', gridLine: '#2d1b4e', accent: '#ff6ec7', accentAlt: '#ffd319', textSecondary: '#e0a0ff', textMuted: '#8866aa' },
+                canvas: { grid: 'rgba(255, 110, 199, 0.12)', gridNumber: 'rgba(255, 110, 199, 0.3)', obstacle: '#2d1b4e', obstacleBorder: '#5533aa', obstacleX: '#6644bb', hoverFill: 'rgba(255, 110, 199, 0.2)', hoverStroke: 'rgba(255, 110, 199, 0.5)', junctionBg: '#1a0a2e', stationBg: '#1a0a2e', outletBg: '#1a0a2e' }
+            },
+            matrix: {
+                name: 'Matrix', icon: '🟢', unlockedAt: 10,
+                css: { bgDark: '#000a00', bgMedium: '#001a00', bgElevated: '#002a00', gridLine: '#001a00', accent: '#00ff41', accentAlt: '#00cc33', textSecondary: '#66ff88', textMuted: '#336644' },
+                canvas: { grid: 'rgba(0, 255, 65, 0.1)', gridNumber: 'rgba(0, 255, 65, 0.3)', obstacle: '#001a00', obstacleBorder: '#004400', obstacleX: '#006600', hoverFill: 'rgba(0, 255, 65, 0.15)', hoverStroke: 'rgba(0, 255, 65, 0.5)', junctionBg: '#000a00', stationBg: '#000a00', outletBg: '#000a00' }
+            },
+            gold: {
+                name: 'Midnight Gold', icon: '💛', unlockedAt: 25,
+                css: { bgDark: '#0a0a0a', bgMedium: '#1a1510', bgElevated: '#2a2215', gridLine: '#1a1510', accent: '#ffc857', accentAlt: '#ff8c42', textSecondary: '#e0c088', textMuted: '#887744' },
+                canvas: { grid: 'rgba(255, 200, 87, 0.1)', gridNumber: 'rgba(255, 200, 87, 0.3)', obstacle: '#1a1510', obstacleBorder: '#443322', obstacleX: '#665533', hoverFill: 'rgba(255, 200, 87, 0.15)', hoverStroke: 'rgba(255, 200, 87, 0.5)', junctionBg: '#0a0a0a', stationBg: '#0a0a0a', outletBg: '#0a0a0a' }
+            },
+            arctic: {
+                name: 'Arctic', icon: '🧊', unlockedAt: 40,
+                css: { bgDark: '#050a14', bgMedium: '#0a1528', bgElevated: '#10203c', gridLine: '#0a1528', accent: '#88ddff', accentAlt: '#ffffff', textSecondary: '#aaddff', textMuted: '#557799' },
+                canvas: { grid: 'rgba(136, 221, 255, 0.1)', gridNumber: 'rgba(136, 221, 255, 0.3)', obstacle: '#0a1528', obstacleBorder: '#1a3355', obstacleX: '#2a4466', hoverFill: 'rgba(136, 221, 255, 0.15)', hoverStroke: 'rgba(136, 221, 255, 0.5)', junctionBg: '#050a14', stationBg: '#050a14', outletBg: '#050a14' }
+            },
+            vapor: {
+                name: 'Vapor Wave', icon: '🌸', unlockedAt: 60,
+                css: { bgDark: '#1a0a2a', bgMedium: '#2a1540', bgElevated: '#3a2055', gridLine: '#2a1540', accent: '#ff71ce', accentAlt: '#01cdfe', textSecondary: '#ff9de2', textMuted: '#886699' },
+                canvas: { grid: 'rgba(255, 113, 206, 0.1)', gridNumber: 'rgba(255, 113, 206, 0.3)', obstacle: '#2a1540', obstacleBorder: '#553366', obstacleX: '#664477', hoverFill: 'rgba(255, 113, 206, 0.15)', hoverStroke: 'rgba(255, 113, 206, 0.5)', junctionBg: '#1a0a2a', stationBg: '#1a0a2a', outletBg: '#1a0a2a' }
+            }
+        };
+
+        this.cycleSkins = {
+            classic: { name: 'Classic', icon: '⭕', unlocked: true },
+            diamond: { name: 'Diamond', icon: '💎', unlockedAt: 15 },
+            arrow: { name: 'Arrow', icon: '➤', unlockedAt: 30 },
+            pulse: { name: 'Pulse', icon: '💫', unlockedAt: 50 },
+            star: { name: 'Star', icon: '⭐', unlockedAt: 70 }
+        };
+
+        this.trailEffects = {
+            default: { name: 'Default', icon: '〰️', unlocked: true },
+            sparkle: { name: 'Sparkle', icon: '✨', unlockedAt: 20 },
+            flame: { name: 'Flame', icon: '🔥', unlockedAt: 45 },
+            pixel: { name: 'Pixel', icon: '▪️', unlockedAt: 55 }
+        };
+
         // Timer state
         this.timerStart = null;
         this.timerRunning = false;
@@ -142,6 +191,7 @@ class LightCycleGame {
         this.initKeyboardShortcuts();
         this.initCloudSync();
         this.initCommunityUI();
+        this.initThemes();
         this.renderLevelSelect();
         this.startAnimationLoop();
         
@@ -804,8 +854,11 @@ class LightCycleGame {
             devMode: false,
             colorblindMode: false,
             timeAttackMode: false,
-            freeDrawMode: false,  // Free-form drawing: cell-by-cell without auto-pathfinding
-            cloudSync: false  // Sync progress to cloud
+            freeDrawMode: false,
+            cloudSync: false,
+            theme: 'classic',
+            cycleSkin: 'classic',
+            trailEffect: 'default'
         };
         return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     }
@@ -1340,6 +1393,175 @@ class LightCycleGame {
         }
     }
     
+    // ==================== THEMES & SKINS ====================
+    initThemes() {
+        this.activeThemeColors = this.themes.classic.canvas;
+        this.applyTheme(this.settings.theme || 'classic');
+        this.setupThemeUI();
+    }
+
+    getCompletedCount() {
+        const progress = this.loadProgress();
+        return progress.completedLevels ? progress.completedLevels.length : 0;
+    }
+
+    isItemUnlocked(item) {
+        if (item.unlocked) return true;
+        return this.getCompletedCount() >= (item.unlockedAt || 999);
+    }
+
+    applyTheme(themeId) {
+        const theme = this.themes[themeId];
+        if (!theme || !this.isItemUnlocked(theme)) {
+            themeId = 'classic';
+        }
+        const t = this.themes[themeId];
+        this.settings.theme = themeId;
+        this.activeThemeColors = t.canvas;
+        this.saveSettings();
+        
+        // Apply CSS variables
+        const root = document.documentElement;
+        root.style.setProperty('--bg-dark', t.css.bgDark);
+        root.style.setProperty('--bg-medium', t.css.bgMedium);
+        root.style.setProperty('--bg-elevated', t.css.bgElevated);
+        root.style.setProperty('--grid-line', t.css.gridLine);
+        root.style.setProperty('--neon-cyan', t.css.accent);
+        root.style.setProperty('--neon-magenta', t.css.accentAlt);
+        root.style.setProperty('--text-secondary', t.css.textSecondary);
+        root.style.setProperty('--text-muted', t.css.textMuted);
+        
+        // Update canvas bg
+        if (this.canvas) {
+            this.canvas.style.background = t.css.bgDark;
+        }
+    }
+
+    setCycleSkin(skinId) {
+        const skin = this.cycleSkins[skinId];
+        if (!skin || !this.isItemUnlocked(skin)) return;
+        this.settings.cycleSkin = skinId;
+        this.saveSettings();
+    }
+
+    setTrailEffect(effectId) {
+        const effect = this.trailEffects[effectId];
+        if (!effect || !this.isItemUnlocked(effect)) return;
+        this.settings.trailEffect = effectId;
+        this.saveSettings();
+    }
+
+    setupThemeUI() {
+        // Build theme picker HTML
+        const settingsContent = document.querySelector('.settings-content');
+        if (!settingsContent) return;
+
+        const themeSection = document.createElement('div');
+        themeSection.className = 'theme-section';
+        themeSection.innerHTML = `
+            <div class="setting-row" style="flex-direction:column;align-items:stretch;">
+                <label style="margin-bottom:8px;">🎨 Theme</label>
+                <div class="theme-picker" id="theme-picker"></div>
+            </div>
+            <div class="setting-row" style="flex-direction:column;align-items:stretch;">
+                <label style="margin-bottom:8px;">🏍️ Cycle Skin</label>
+                <div class="theme-picker" id="skin-picker"></div>
+            </div>
+            <div class="setting-row" style="flex-direction:column;align-items:stretch;">
+                <label style="margin-bottom:8px;">✨ Trail Effect</label>
+                <div class="theme-picker" id="trail-picker"></div>
+            </div>
+        `;
+        settingsContent.prepend(themeSection);
+
+        this.renderThemePickers();
+    }
+
+    renderThemePickers() {
+        const completed = this.getCompletedCount();
+
+        // Theme picker
+        const themePicker = document.getElementById('theme-picker');
+        if (themePicker) {
+            themePicker.innerHTML = '';
+            Object.entries(this.themes).forEach(([id, theme]) => {
+                const unlocked = this.isItemUnlocked(theme);
+                const selected = this.settings.theme === id;
+                const btn = document.createElement('button');
+                btn.className = 'theme-option' + (selected ? ' selected' : '') + (!unlocked ? ' locked' : '');
+                btn.innerHTML = `
+                    <span class="theme-icon">${theme.icon}</span>
+                    <span class="theme-name">${theme.name}</span>
+                    ${!unlocked ? `<span class="theme-lock">🔒 Lvl ${theme.unlockedAt}</span>` : ''}
+                `;
+                btn.addEventListener('click', () => {
+                    if (!unlocked) {
+                        this.showToast(`🔒 Complete ${theme.unlockedAt} levels to unlock ${theme.name}`);
+                        return;
+                    }
+                    this.applyTheme(id);
+                    this.renderThemePickers();
+                    this.playSound('click');
+                });
+                themePicker.appendChild(btn);
+            });
+        }
+
+        // Skin picker
+        const skinPicker = document.getElementById('skin-picker');
+        if (skinPicker) {
+            skinPicker.innerHTML = '';
+            Object.entries(this.cycleSkins).forEach(([id, skin]) => {
+                const unlocked = this.isItemUnlocked(skin);
+                const selected = this.settings.cycleSkin === id;
+                const btn = document.createElement('button');
+                btn.className = 'theme-option' + (selected ? ' selected' : '') + (!unlocked ? ' locked' : '');
+                btn.innerHTML = `
+                    <span class="theme-icon">${skin.icon}</span>
+                    <span class="theme-name">${skin.name}</span>
+                    ${!unlocked ? `<span class="theme-lock">🔒 Lvl ${skin.unlockedAt}</span>` : ''}
+                `;
+                btn.addEventListener('click', () => {
+                    if (!unlocked) {
+                        this.showToast(`🔒 Complete ${skin.unlockedAt} levels to unlock ${skin.name}`);
+                        return;
+                    }
+                    this.setCycleSkin(id);
+                    this.renderThemePickers();
+                    this.playSound('click');
+                });
+                skinPicker.appendChild(btn);
+            });
+        }
+
+        // Trail picker
+        const trailPicker = document.getElementById('trail-picker');
+        if (trailPicker) {
+            trailPicker.innerHTML = '';
+            Object.entries(this.trailEffects).forEach(([id, effect]) => {
+                const unlocked = this.isItemUnlocked(effect);
+                const selected = this.settings.trailEffect === id;
+                const btn = document.createElement('button');
+                btn.className = 'theme-option' + (selected ? ' selected' : '') + (!unlocked ? ' locked' : '');
+                btn.innerHTML = `
+                    <span class="theme-icon">${effect.icon}</span>
+                    <span class="theme-name">${effect.name}</span>
+                    ${!unlocked ? `<span class="theme-lock">🔒 Lvl ${effect.unlockedAt}</span>` : ''}
+                `;
+                btn.addEventListener('click', () => {
+                    if (!unlocked) {
+                        this.showToast(`🔒 Complete ${effect.unlockedAt} levels to unlock ${effect.name}`);
+                        return;
+                    }
+                    this.setTrailEffect(id);
+                    this.renderThemePickers();
+                    this.playSound('click');
+                });
+                trailPicker.appendChild(btn);
+            });
+        }
+    }
+
     initCommunityUI() {
         const communityBtn = document.getElementById('community-btn');
         if (communityBtn) {
@@ -3226,15 +3448,56 @@ class LightCycleGame {
         const cx = x * this.cellSize + this.cellSize / 2;
         const cy = y * this.cellSize + this.cellSize / 2;
         const color = this.colors[colorName] || '#00ffff';
-        for (let i = 0; i < 6; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 3 + 1;
-            this.trailParticles.push({
-                x: cx, y: cy,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 1, color: color, size: Math.random() * 4 + 2
-            });
+        const effect = this.settings.trailEffect || 'default';
+        
+        switch (effect) {
+            case 'sparkle':
+                for (let i = 0; i < 8; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 4 + 1;
+                    this.trailParticles.push({
+                        x: cx + (Math.random() - 0.5) * 10, y: cy + (Math.random() - 0.5) * 10,
+                        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                        life: 1, color: color, size: Math.random() * 3 + 1,
+                        effect: 'sparkle', twinkle: Math.random() * Math.PI * 2
+                    });
+                }
+                break;
+            case 'flame':
+                for (let i = 0; i < 8; i++) {
+                    const spread = (Math.random() - 0.5) * 4;
+                    this.trailParticles.push({
+                        x: cx + spread, y: cy,
+                        vx: spread * 0.3, vy: -(Math.random() * 4 + 2),
+                        life: 1, color: i < 3 ? '#ffaa00' : (i < 5 ? '#ff4400' : color),
+                        size: Math.random() * 5 + 2, effect: 'flame'
+                    });
+                }
+                break;
+            case 'pixel':
+                for (let i = 0; i < 4; i++) {
+                    const angle = (Math.PI / 2) * i + Math.random() * 0.5;
+                    const speed = Math.random() * 2 + 1;
+                    this.trailParticles.push({
+                        x: cx, y: cy,
+                        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                        life: 1, color: color, size: Math.random() * 3 + 3,
+                        effect: 'pixel'
+                    });
+                }
+                break;
+            default:
+                for (let i = 0; i < 6; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 3 + 1;
+                    this.trailParticles.push({
+                        x: cx, y: cy,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 1, color: color, size: Math.random() * 4 + 2
+                    });
+                }
+                break;
         }
     }
     
@@ -4793,7 +5056,8 @@ class LightCycleGame {
     
     drawGrid() {
         const ctx = this.ctx;
-        ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
+        const tc = this.activeThemeColors;
+        ctx.strokeStyle = tc.grid;
         ctx.lineWidth = 1;
         
         for (let i = 0; i <= this.gridSize; i++) {
@@ -4810,7 +5074,7 @@ class LightCycleGame {
         
         // Grid numbers
         if (this.settings.gridNumbers) {
-            ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+            ctx.fillStyle = tc.gridNumber;
             ctx.font = '10px monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -4824,20 +5088,21 @@ class LightCycleGame {
     
     drawObstacles(obstacles) {
         const ctx = this.ctx;
+        const tc = this.activeThemeColors;
         obstacles.forEach(obs => {
             const x = obs.x * this.cellSize + 4;
             const y = obs.y * this.cellSize + 4;
             const size = this.cellSize - 8;
             
-            ctx.fillStyle = '#1a1a3a';
+            ctx.fillStyle = tc.obstacle;
             ctx.fillRect(x, y, size, size);
             
-            ctx.strokeStyle = '#333355';
+            ctx.strokeStyle = tc.obstacleBorder;
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, size, size);
             
             // X pattern
-            ctx.strokeStyle = '#444466';
+            ctx.strokeStyle = tc.obstacleX;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(x + 6, y + 6);
@@ -4857,7 +5122,7 @@ class LightCycleGame {
             const cy = s.y * this.cellSize + this.cellSize / 2;
             const size = this.cellSize * 0.35;
             
-            ctx.fillStyle = '#1a1a3a';
+            ctx.fillStyle = this.activeThemeColors.obstacle;
             ctx.strokeStyle = '#ffff00';
             ctx.lineWidth = 2;
             ctx.shadowColor = '#ffff00';
@@ -5014,7 +5279,7 @@ class LightCycleGame {
             ctx.shadowBlur = 10 * pulse;
             
             // Diamond background
-            ctx.fillStyle = '#0a0a1a';
+            ctx.fillStyle = this.activeThemeColors.junctionBg || '#0a0a1a';
             ctx.strokeStyle = priorityColor;
             ctx.lineWidth = 2;
             
@@ -5218,7 +5483,8 @@ class LightCycleGame {
             );
             ctx.setLineDash([]);
         } else {
-            ctx.fillStyle = `rgba(0, 255, 255, ${pulse * 0.2})`;
+            const tc = this.activeThemeColors;
+            ctx.fillStyle = tc.hoverFill.replace(/[\d.]+\)$/, `${pulse * 0.2})`);
             ctx.strokeStyle = color;
             ctx.globalAlpha = pulse;
             ctx.lineWidth = 2;
@@ -5237,9 +5503,30 @@ class LightCycleGame {
             ctx.globalAlpha = p.life;
             ctx.shadowColor = p.color;
             ctx.shadowBlur = 10;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-            ctx.fill();
+            
+            if (p.effect === 'sparkle') {
+                // Twinkle alpha
+                const twinkle = Math.sin((Date.now() / 80) + (p.twinkle || 0)) * 0.5 + 0.5;
+                ctx.globalAlpha = p.life * twinkle;
+                const s = p.size * p.life;
+                // Draw + shape
+                ctx.fillRect(p.x - s * 0.15, p.y - s, s * 0.3, s * 2);
+                ctx.fillRect(p.x - s, p.y - s * 0.15, s * 2, s * 0.3);
+            } else if (p.effect === 'pixel') {
+                // Draw square pixel
+                const s = p.size * p.life;
+                ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+            } else if (p.effect === 'flame') {
+                // Draw teardrop-ish shape
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Default circle
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fill();
+            }
         });
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
@@ -5281,6 +5568,7 @@ class LightCycleGame {
     drawOutlets(outlets) {
         const ctx = this.ctx;
         const pulse = Math.sin(this.pulsePhase * 2) * 0.2 + 0.8;
+        const bgColor = this.activeThemeColors.outletBg;
         
         outlets.forEach((outlet, index) => {
             const cx = outlet.x * this.cellSize + this.cellSize / 2;
@@ -5294,7 +5582,7 @@ class LightCycleGame {
             ctx.fillStyle = color;
             ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
             
-            ctx.fillStyle = '#0a0a1a';
+            ctx.fillStyle = bgColor;
             ctx.fillRect(cx - size * 0.6, cy - size * 0.6, size * 1.2, size * 1.2);
             
             // Play arrow
@@ -5315,7 +5603,7 @@ class LightCycleGame {
                 const badgeSize = this.cellSize * 0.18;
                 
                 // Badge background
-                ctx.fillStyle = '#0a0a1a';
+                ctx.fillStyle = bgColor;
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -5354,7 +5642,7 @@ class LightCycleGame {
                 const delayBadgeSize = this.cellSize * 0.15;
                 
                 // Clock background
-                ctx.fillStyle = '#0a0a1a';
+                ctx.fillStyle = this.activeThemeColors.junctionBg || '#0a0a1a';
                 ctx.strokeStyle = '#ffaa00';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
@@ -5436,6 +5724,7 @@ class LightCycleGame {
     drawStations(stations) {
         const ctx = this.ctx;
         const pulse = Math.sin(this.pulsePhase * 1.5) * 0.2 + 0.8;
+        const bgColor = this.activeThemeColors.stationBg;
         
         stations.forEach(station => {
             const cx = station.x * this.cellSize + this.cellSize / 2;
@@ -5447,7 +5736,7 @@ class LightCycleGame {
             
             ctx.shadowColor = color;
             ctx.shadowBlur = 15 * pulse;
-            ctx.fillStyle = '#0a0a1a';
+            ctx.fillStyle = bgColor;
             ctx.strokeStyle = color;
             ctx.lineWidth = 3;
             
@@ -5479,7 +5768,7 @@ class LightCycleGame {
                 const badgeSize = this.cellSize * 0.2;
                 
                 // Badge background
-                ctx.fillStyle = '#0a0a1a';
+                ctx.fillStyle = bgColor;
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -5532,6 +5821,7 @@ class LightCycleGame {
     
     drawCycles() {
         const ctx = this.ctx;
+        const skin = this.settings.cycleSkin || 'classic';
         
         this.cycles.forEach(cycle => {
             if (!cycle.active && !cycle.success) return;
@@ -5577,14 +5867,105 @@ class LightCycleGame {
             ctx.shadowColor = color;
             ctx.shadowBlur = 25;
             ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fill();
             
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(x, y, radius * 0.4, 0, Math.PI * 2);
-            ctx.fill();
+            // Draw cycle shape based on skin
+            switch (skin) {
+                case 'diamond':
+                    ctx.beginPath();
+                    ctx.moveTo(x, y - radius);
+                    ctx.lineTo(x + radius, y);
+                    ctx.lineTo(x, y + radius);
+                    ctx.lineTo(x - radius, y);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(x, y - radius * 0.35);
+                    ctx.lineTo(x + radius * 0.35, y);
+                    ctx.lineTo(x, y + radius * 0.35);
+                    ctx.lineTo(x - radius * 0.35, y);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    
+                case 'arrow': {
+                    // Calculate direction
+                    let dx = nextPos.x - currentPos.x;
+                    let dy = nextPos.y - currentPos.y;
+                    let angle = Math.atan2(dy, dx);
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(radius, 0);
+                    ctx.lineTo(-radius * 0.7, -radius * 0.8);
+                    ctx.lineTo(-radius * 0.3, 0);
+                    ctx.lineTo(-radius * 0.7, radius * 0.8);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, radius * 0.25, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    break;
+                }
+                    
+                case 'pulse': {
+                    const pulseScale = Math.sin(Date.now() / 150) * 0.3 + 1;
+                    ctx.globalAlpha = 0.3;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 1.5 * pulseScale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * pulseScale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 0.25, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                    
+                case 'star': {
+                    const spikes = 5;
+                    const outerR = radius;
+                    const innerR = radius * 0.45;
+                    const rot = -Math.PI / 2 + (Date.now() / 500);
+                    ctx.beginPath();
+                    for (let i = 0; i < spikes * 2; i++) {
+                        const r = i % 2 === 0 ? outerR : innerR;
+                        const a = rot + (i * Math.PI) / spikes;
+                        const px = x + Math.cos(a) * r;
+                        const py = y + Math.sin(a) * r;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 0.25, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                    
+                default: // classic
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+            }
+            
             ctx.shadowBlur = 0;
             
             if (cycle.success) {
@@ -5605,6 +5986,7 @@ class LightCycleGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new LightCycleGame();
 });
+
 
 
 
