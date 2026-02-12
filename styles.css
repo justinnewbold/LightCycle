@@ -1451,3 +1451,124 @@ body {
     opacity: 1;
     transform: scale(1.1);
 }
+
+/* ============================================
+   THEMES & SKINS SYSTEM
+   ============================================ */
+
+.theme-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--grid-line, #1a1a3a);
+}
+
+.theme-section h3 {
+    color: var(--accent, #00ffff);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 12px 0;
+    font-weight: 600;
+}
+
+.theme-picker {
+    margin-bottom: 16px;
+}
+
+.theme-picker label {
+    display: block;
+    color: var(--text-secondary, #88ccff);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.theme-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.theme-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--bg-medium, #12122a);
+    border: 2px solid var(--grid-line, #1a1a3a);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.theme-option:hover:not(.locked) {
+    border-color: var(--accent, #00ffff);
+    background: var(--bg-elevated, #1a1a3a);
+    transform: translateY(-1px);
+}
+
+.theme-option.selected {
+    border-color: var(--accent, #00ffff);
+    background: var(--bg-elevated, #1a1a3a);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+.theme-option.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.theme-option.locked:hover {
+    border-color: var(--grid-line, #1a1a3a);
+    transform: none;
+}
+
+.theme-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.theme-name {
+    color: var(--text-secondary, #88ccff);
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.theme-option.selected .theme-name {
+    color: var(--accent, #00ffff);
+}
+
+.theme-lock {
+    color: var(--text-muted, #667788);
+    font-size: 0.65rem;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+/* Mobile adjustments for theme pickers */
+@media (max-width: 480px) {
+    .theme-options {
+        gap: 6px;
+    }
+    
+    .theme-option {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+    }
+    
+    .theme-icon {
+        font-size: 1rem;
+    }
+    
+    .theme-name {
+        font-size: 0.7rem;
+    }
+}
+
